@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Sheeply Store</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { 
+      background:#fff; 
+      font-family: sans-serif; 
+      padding:20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sheeply Store</h1>
+  <p>Welcome to the catalog!</p>
+
+  <button onclick="sendData()">Send</button>
+
+  <script>
+    function sendData() {
+      Telegram.WebApp.sendData("User clicked!");
+    }
+
+    Telegram.WebApp.ready();
+  </script>
+</body>
+</html>
