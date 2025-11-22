@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SHEEP RUN Deluxe</title>
+  <title>SHEEPLY Tech Run</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <style>
     * {
@@ -60,11 +60,6 @@
       align-items: center;
       gap: 4px;
       white-space: nowrap;
-    }
-
-    #bonusIndicator {
-      font-size: 11px;
-      color: #bbf7d0;
     }
 
     .overlay {
@@ -151,22 +146,20 @@
     <div id="hud">
       <span>📏 Дистанция: <strong id="distValue">0</strong> м</span>
       <span>🏆 Рекорд: <strong id="bestValue">0</strong> м</span>
-      <span>🪙 Монеты: <strong id="coinValue">0</strong></span>
-      <span id="bonusIndicator"></span>
+      <span>📦 Техника: <strong id="gadgetsValue">0</strong></span>
     </div>
 
     <!-- стартовый экран -->
     <div id="startScreen" class="overlay">
       <div class="overlay-inner">
-        <h1>SHEEP RUN</h1>
+        <h1>SHEEPLY TECH RUN</h1>
         <p>
-          Милая пушистая белая овечка бежит по дорогому зелёному полю.<br>
-          Уворачивайся от деревянных заборов, собирай монетки и бонусы:
-          <br>🍀 x2 дистанция, 🛡 щит, 🧲 магнит монет.
+          Овечка SHEEPLY бежит по зелёному полю, как в Subway Surfers.<br>
+          Собирай телефоны, ноутбуки, наушники, приставки и уворачивайся от препятствий.
         </p>
         <button class="btn" id="startBtn">Играть</button>
         <div class="hint">
-          Свайп влево/вправо или стрелки ← → / A D — смена полосы
+          Свайп влево / вправо или стрелки ← → / A D — смена полосы
         </div>
       </div>
     </div>
@@ -174,13 +167,13 @@
     <!-- экран конца игры -->
     <div id="gameOverScreen" class="overlay hidden">
       <div class="overlay-inner">
-        <h2>Овечка споткнулась 🐑</h2>
+        <h2>Игра окончена 🐑</h2>
         <p class="stats">Дистанция: <span id="finalDist">0</span> м</p>
         <p class="stats">Рекорд: <span id="finalBest">0</span> м</p>
-        <p class="stats">Монеты: <span id="finalCoins">0</span> 🪙</p>
+        <p class="stats">Собрано техники: <span id="finalGadgets">0</span></p>
         <button class="btn" id="restartBtn">Играть снова</button>
         <div class="hint">
-          Собирай бонусы: 🍀 x2, 🛡 щит, 🧲 магнит — и бегай ещё дальше.
+          Смысл простой: кто больше преодолеет дистанцию и соберёт техники.
         </div>
       </div>
     </div>
@@ -192,11 +185,10 @@
 
     const distEl = document.getElementById('distValue');
     const bestEl = document.getElementById('bestValue');
-    const coinEl = document.getElementById('coinValue');
-    const bonusIndicator = document.getElementById('bonusIndicator');
+    const gadgetsEl = document.getElementById('gadgetsValue');
     const finalDistEl = document.getElementById('finalDist');
     const finalBestEl = document.getElementById('finalBest');
-    const finalCoinsEl = document.getElementById('finalCoins');
+    const finalGadgetsEl = document.getElementById('finalGadgets');
 
     const startScreen = document.getElementById('startScreen');
     const gameOverScreen = document.getElementById('gameOverScreen');
@@ -215,14 +207,13 @@
     };
 
     let fences = [];
-    let coins = [];
-    let bonuses = [];
+    let gadgets = []; // техника
 
-    // скорость в 2 раза меньше, чем раньше
-    let speed = 0.00225;
+    // скорость
+    let speed = 0.0025; // умеренная
     let distance = 0;
     let bestDistance = 0;
-    let coinsCount = 0;
+    let gadgetsCount = 0;
 
     let isRunning = false;
     let isGameOver = false;
@@ -230,23 +221,11 @@
     let spawnTimer = 0;
     let nextSpawn = 900;
 
-    let coinSpawnTimer = 0;
-    let coinSpawnInterval = 700;
-
-    // бонусы
-    const BONUS_TYPE_DOUBLE = 'double';
-    const BONUS_TYPE_SHIELD = 'shield';
-    const BONUS_TYPE_MAGNET = 'magnet';
-
-    let doubleActive = false;
-    let doubleTimer = 0;
-    let magnetActive = false;
-    let magnetTimer = 0;
-    let shieldCharges = 0;
-    const BONUS_DURATION = 6000; // мс, для x2 и магнита
+    let gadgetSpawnTimer = 0;
+    let gadgetSpawnInterval = 650;
 
     try {
-      const saved = localStorage.getItem('sheep_run_best');
+      const saved = localStorage.getItem('sheep_tech_run_best');
       if (saved) {
         bestDistance = parseInt(saved, 10) || 0;
         bestEl.textContent = bestDistance;
@@ -267,28 +246,20 @@
 
     function resetGame() {
       distance = 0;
-      speed = 0.00225;
+      speed = 0.0025;
       spawnTimer = 0;
       nextSpawn = 900;
       fences = [];
-      coins = [];
-      bonuses = [];
-      coinsCount = 0;
+      gadgets = [];
+      gadgetsCount = 0;
       isGameOver = false;
 
       sheep.laneIndex = 1;
       sheep.laneTarget = 1;
 
-      doubleActive = false;
-      doubleTimer = 0;
-      magnetActive = false;
-      magnetTimer = 0;
-      shieldCharges = 0;
-      bonusIndicator.textContent = '';
-
       distEl.textContent = '0';
       bestEl.textContent = bestDistance;
-      coinEl.textContent = '0';
+      gadgetsEl.textContent = '0';
     }
 
     function laneToX(laneIndex) {
@@ -300,27 +271,14 @@
     function spawnFence() {
       const laneIndex = Math.floor(Math.random() * 3);
       fences.push({ laneIndex, progress: 0 });
-      nextSpawn = 900 + Math.random() * 700;
+      nextSpawn = 800 + Math.random() * 700;
     }
 
-    function spawnCoin() {
+    function spawnGadget() {
       const laneIndex = Math.floor(Math.random() * 3);
-      coins.push({
-        laneIndex,
-        progress: 0
-      });
-    }
-
-    function spawnBonus() {
-      const laneIndex = Math.floor(Math.random() * 3);
-      // распределение типов бонусов
-      const r = Math.random();
-      let type;
-      if (r < 0.5) type = BONUS_TYPE_DOUBLE;      // чаще всего
-      else if (r < 0.8) type = BONUS_TYPE_MAGNET; // средне
-      else type = BONUS_TYPE_SHIELD;              // самый редкий
-
-      bonuses.push({
+      const gadgetTypes = ['phone', 'laptop', 'headphones', 'console'];
+      const type = gadgetTypes[Math.floor(Math.random() * gadgetTypes.length)];
+      gadgets.push({
         laneIndex,
         progress: 0,
         type
@@ -330,7 +288,7 @@
     function updateSheep(dt) {
       if (sheep.laneIndex !== sheep.laneTarget) {
         const dir = sheep.laneTarget > sheep.laneIndex ? 1 : -1;
-        sheep.laneIndex += dir * dt * 0.006; // плавнее и помедленнее
+        sheep.laneIndex += dir * dt * 0.006; // плавное смещение
         if ((dir > 0 && sheep.laneIndex >= sheep.laneTarget) ||
             (dir < 0 && sheep.laneIndex <= sheep.laneTarget)) {
           sheep.laneIndex = sheep.laneTarget;
@@ -351,130 +309,43 @@
         if (f.progress > 0.85 && f.progress < 1.03) {
           const sheepLaneRounded = Math.round(sheep.laneIndex);
           if (sheepLaneRounded === f.laneIndex) {
-            // проверяем щит
-            if (shieldCharges > 0) {
-              shieldCharges -= 1;
-              // небольшой "толчок" овечки
-              if (navigator.vibrate) navigator.vibrate(70);
-              // визуально можно просто удалить забор
-              fences.splice(i, 1);
-            } else {
-              endGame();
-              return;
-            }
+            endGame();
+            return;
           }
         }
       }
     }
 
-    function updateCoins(dt) {
+    function updateGadgets(dt) {
       const speedFactor = speed * dt;
-      for (let i = coins.length - 1; i >= 0; i--) {
-        const c = coins[i];
-        c.progress += speedFactor;
-        if (c.progress > 1.3) {
-          coins.splice(i, 1);
+      for (let i = gadgets.length - 1; i >= 0; i--) {
+        const g = gadgets[i];
+        g.progress += speedFactor;
+        if (g.progress > 1.3) {
+          gadgets.splice(i, 1);
           continue;
         }
 
-        const sheepLaneRounded = Math.round(sheep.laneIndex);
-
-        // магнит: притягиваем монеты, если рядом по прогрессу
-        if (magnetActive && c.progress > 0.5) {
-          const laneDiff = Math.abs(c.laneIndex - sheepLaneRounded);
-          if (laneDiff <= 1) {
-            // авто-сбор
-            coins.splice(i, 1);
-            coinsCount += 1;
-            coinEl.textContent = coinsCount;
-            if (navigator.vibrate) navigator.vibrate(10);
-            continue;
-          }
-        }
-
-        if (c.progress > 0.85 && c.progress < 1.05) {
-          if (sheepLaneRounded === c.laneIndex) {
-            coins.splice(i, 1);
-            coinsCount += 1;
-            coinEl.textContent = coinsCount;
-            if (navigator.vibrate) navigator.vibrate(10);
-          }
-        }
-      }
-    }
-
-    function updateBonuses(dt) {
-      const speedFactor = speed * dt;
-      for (let i = bonuses.length - 1; i >= 0; i--) {
-        const b = bonuses[i];
-        b.progress += speedFactor;
-        if (b.progress > 1.3) {
-          bonuses.splice(i, 1);
-          continue;
-        }
-
-        if (b.progress > 0.85 && b.progress < 1.05) {
+        if (g.progress > 0.85 && g.progress < 1.05) {
           const sheepLaneRounded = Math.round(sheep.laneIndex);
-          if (sheepLaneRounded === b.laneIndex) {
-            bonuses.splice(i, 1);
-            activateBonus(b.type);
+          if (sheepLaneRounded === g.laneIndex) {
+            gadgets.splice(i, 1);
+            gadgetsCount += 1;
+            gadgetsEl.textContent = gadgetsCount;
+            if (navigator.vibrate) navigator.vibrate(10);
           }
         }
-      }
-
-      // таймеры
-      if (doubleActive) {
-        doubleTimer -= dt;
-        if (doubleTimer <= 0) {
-          doubleActive = false;
-        }
-      }
-      if (magnetActive) {
-        magnetTimer -= dt;
-        if (magnetTimer <= 0) {
-          magnetActive = false;
-        }
-      }
-
-      // обновляем HUD по бонусам
-      const parts = [];
-      if (doubleActive) {
-        const secs = Math.ceil(doubleTimer / 1000);
-        parts.push(`🍀 x2 ${secs}с`);
-      }
-      if (magnetActive) {
-        const secs = Math.ceil(magnetTimer / 1000);
-        parts.push(`🧲 ${secs}с`);
-      }
-      if (shieldCharges > 0) {
-        parts.push(`🛡 ×${shieldCharges}`);
-      }
-      bonusIndicator.textContent = parts.join(' | ');
-    }
-
-    function activateBonus(type) {
-      if (navigator.vibrate) navigator.vibrate(60);
-      if (type === BONUS_TYPE_DOUBLE) {
-        doubleActive = true;
-        doubleTimer = BONUS_DURATION;
-      } else if (type === BONUS_TYPE_MAGNET) {
-        magnetActive = true;
-        magnetTimer = BONUS_DURATION;
-      } else if (type === BONUS_TYPE_SHIELD) {
-        shieldCharges = Math.min(shieldCharges + 1, 2); // максимум 2 щита
       }
     }
 
     function updateDistance(dt) {
-      const factorBase = 0.3;
-      const factor = doubleActive ? factorBase * 2 : factorBase;
-
+      const factor = 0.3;
       distance += dt * speed * factor;
       const distInt = Math.floor(distance);
       distEl.textContent = distInt;
 
-      // лёгкое ускорение игры со временем
-      speed += dt * 0.0000004;
+      // лёгкое ускорение по ходу игры
+      speed += dt * 0.0000003;
     }
 
     function update(timestamp) {
@@ -485,36 +356,31 @@
       lastTime = timestamp;
 
       spawnTimer += dt;
-      coinSpawnTimer += dt;
+      gadgetSpawnTimer += dt;
 
       if (spawnTimer >= nextSpawn) {
         spawnFence();
         spawnTimer = 0;
-        // небольшой шанс на бонус при спавне забора
-        if (Math.random() < 0.2) {
-          spawnBonus();
-        }
       }
 
-      if (coinSpawnTimer >= coinSpawnInterval) {
-        spawnCoin();
-        coinSpawnTimer = 0;
+      if (gadgetSpawnTimer >= gadgetSpawnInterval) {
+        spawnGadget();
+        gadgetSpawnTimer = 0;
       }
 
       updateSheep(dt);
       updateFences(dt);
-      updateCoins(dt);
-      updateBonuses(dt);
+      updateGadgets(dt);
       updateDistance(dt);
     }
 
-    // ФОН: более детализированное поле и небо
+    // фон: небо + поле
     function drawBackground() {
       ctx.clearRect(0, 0, gameWidth, gameHeight);
 
       const horizonY = gameHeight * 0.35;
 
-      // небо с лёгкими "киношными" градиентами
+      // небо
       const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
       skyGrad.addColorStop(0, '#0ea5e9');
       skyGrad.addColorStop(0.4, '#38bdf8');
@@ -522,30 +388,11 @@
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, gameWidth, horizonY);
 
-      // мягкие лучи света
-      ctx.save();
-      ctx.globalAlpha = 0.18;
-      const rays = 4;
-      for (let i = 0; i < rays; i++) {
-        const xStart = gameWidth * (0.15 + i * 0.2);
-        ctx.beginPath();
-        ctx.moveTo(xStart, 0);
-        ctx.lineTo(xStart + gameWidth * 0.15, horizonY);
-        ctx.lineTo(xStart - gameWidth * 0.05, horizonY);
-        ctx.closePath();
-        const rayGrad = ctx.createLinearGradient(xStart, 0, xStart, horizonY);
-        rayGrad.addColorStop(0, 'rgba(255,255,255,0.5)');
-        rayGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = rayGrad;
-        ctx.fill();
-      }
-      ctx.restore();
+      // лёгкие облака
+      drawCloud(gameWidth * 0.25, horizonY * 0.35, gameWidth * 0.16);
+      drawCloud(gameWidth * 0.7, horizonY * 0.23, gameWidth * 0.2);
 
-      // мягкие "пиксарные" облака
-      drawCloud(gameWidth * 0.25, horizonY * 0.4, gameWidth * 0.18);
-      drawCloud(gameWidth * 0.7, horizonY * 0.25, gameWidth * 0.22);
-
-      // поле: несколько перспективных полос для глубины
+      // поле
       const fieldGrad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
       fieldGrad.addColorStop(0, '#bbf7d0');
       fieldGrad.addColorStop(0.4, '#4ade80');
@@ -568,24 +415,7 @@
       ctx.fillStyle = pathGrad;
       ctx.fill();
 
-      // полосы поля (как элитный газон)
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#15803d';
-      for (let i = 0; i < 8; i++) {
-        ctx.beginPath();
-        const x1 = gameWidth * 0.1 + (i * gameWidth * 0.1);
-        ctx.moveTo(x1, gameHeight);
-        ctx.lineTo(x1 + gameWidth * 0.15, gameHeight);
-        ctx.lineTo(gameWidth * 0.5 + (x1 - gameWidth * 0.5) * 0.25, horizonY);
-        ctx.lineTo(gameWidth * 0.5 + (x1 + gameWidth * 0.15 - gameWidth * 0.5) * 0.25, horizonY);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      ctx.restore();
-
-      // разделительные линии полос
-      ctx.save();
+      // разделительные линии
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([7, 10]);
@@ -662,217 +492,165 @@
       ctx.fill();
       ctx.restore();
 
-      // забор
+      // коробка / барьер
       const woodGrad = ctx.createLinearGradient(0, 0, width, height);
-      woodGrad.addColorStop(0, '#fbbf24');
-      woodGrad.addColorStop(0.4, '#f59e0b');
-      woodGrad.addColorStop(1, '#b45309');
+      woodGrad.addColorStop(0, '#e5e7eb');
+      woodGrad.addColorStop(0.4, '#d1d5db');
+      woodGrad.addColorStop(1, '#9ca3af');
       ctx.fillStyle = woodGrad;
-      ctx.strokeStyle = '#78350f';
+      ctx.strokeStyle = '#4b5563';
       ctx.lineWidth = 2.2 * scale;
 
-      const plankHeight = height * 0.2;
-      const gap = plankHeight * 0.5;
-      for (let i = 0; i < 3; i++) {
-        const py = plankHeight * i + gap * i;
-        roundedRect(0, py, width, plankHeight, plankHeight * 0.3);
-        ctx.fill();
-        ctx.stroke();
-      }
+      roundedRect(0, 0, width, height, height * 0.25);
+      ctx.fill();
+      ctx.stroke();
 
-      const posts = 4;
-      const postWidth = width / (posts * 2);
-      for (let i = 0; i <= posts; i++) {
-        const px = (width / posts) * i - postWidth / 2;
-        roundedRect(px, 0, postWidth, height * 0.95, postWidth * 0.4);
-        ctx.fill();
-        ctx.stroke();
-      }
+      // небольшие декоративные полосы
+      ctx.strokeStyle = 'rgba(15,23,42,0.2)';
+      ctx.lineWidth = 1 * scale;
+      ctx.beginPath();
+      ctx.moveTo(width * 0.15, height * 0.3);
+      ctx.lineTo(width * 0.85, height * 0.3);
+      ctx.moveTo(width * 0.15, height * 0.6);
+      ctx.lineTo(width * 0.85, height * 0.6);
+      ctx.stroke();
 
       ctx.restore();
     }
 
-    function drawCoin(c) {
+    function drawGadget(g) {
       const horizonY = gameHeight * 0.35;
       const bottomY = gameHeight * 0.9;
 
-      const y = horizonY + (bottomY - horizonY) * c.progress;
-      const scale = 0.5 + c.progress * 0.9;
+      const y = horizonY + (bottomY - horizonY) * g.progress;
+      const scale = 0.5 + g.progress * 0.9;
 
-      const radiusBase = gameWidth * 0.03;
-      const r = radiusBase * scale;
-
-      const laneX = laneToX(c.laneIndex);
+      const laneX = laneToX(g.laneIndex);
       const x = laneX;
 
       ctx.save();
-      ctx.translate(x, y - r * 1.5);
+      ctx.translate(x, y);
 
       // тень
+      const size = gameWidth * 0.04 * scale;
       ctx.save();
       ctx.globalAlpha = 0.35;
       ctx.beginPath();
-      ctx.ellipse(0, r * 1.5, r * 1.3, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, size * 1.3, size * 1.3, size * 0.6, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#14532d';
       ctx.fill();
       ctx.restore();
 
-      // монета
-      const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
-      grad.addColorStop(0, '#fef9c3');
-      grad.addColorStop(0.5, '#fde047');
-      grad.addColorStop(1, '#f59e0b');
-
-      ctx.beginPath();
-      ctx.arc(0, 0, r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#facc15';
-      ctx.stroke();
-
-      // рельеф
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(254,243,199,0.9)';
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // буква S
-      ctx.fillStyle = '#78350f';
-      ctx.font = `${r * 0.9}px system-ui`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('S', 0, 0.1);
-
-      ctx.restore();
-    }
-
-    function drawBonus(b) {
-      const horizonY = gameHeight * 0.35;
-      const bottomY = gameHeight * 0.9;
-      const y = horizonY + (bottomY - horizonY) * b.progress;
-      const scale = 0.5 + b.progress * 0.9;
-
-      const sizeBase = gameWidth * 0.05;
-      const size = sizeBase * scale;
-
-      const laneX = laneToX(b.laneIndex);
-      const x = laneX;
-
-      ctx.save();
-      ctx.translate(x, y - size * 1.7);
-
-      // тень
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      ctx.beginPath();
-      ctx.ellipse(0, size * 1.5, size * 1.2, size * 0.55, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#14532d';
-      ctx.fill();
-      ctx.restore();
-
-      // фон-сияние
-      const glowGrad = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 1.4);
-      if (b.type === BONUS_TYPE_DOUBLE) {
-        glowGrad.addColorStop(0, 'rgba(190, 242, 100, 0.95)');
-        glowGrad.addColorStop(1, 'rgba(190, 242, 100, 0)');
-      } else if (b.type === BONUS_TYPE_SHIELD) {
-        glowGrad.addColorStop(0, 'rgba(129, 230, 217, 0.95)');
-        glowGrad.addColorStop(1, 'rgba(129, 230, 217, 0)');
-      } else {
-        glowGrad.addColorStop(0, 'rgba(221, 214, 254, 0.95)');
-        glowGrad.addColorStop(1, 'rgba(221, 214, 254, 0)');
-      }
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = glowGrad;
-      ctx.fill();
-
-      // сам бонус
-      if (b.type === BONUS_TYPE_DOUBLE) {
-        // клевер 🍀
-        ctx.fillStyle = '#22c55e';
-        ctx.strokeStyle = '#15803d';
-        ctx.lineWidth = 2;
-        const r = size * 0.55;
-        function leaf(angle) {
-          const dx = Math.cos(angle) * r * 0.45;
-          const dy = Math.sin(angle) * r * 0.45;
-          ctx.beginPath();
-          ctx.arc(dx, dy, r * 0.7, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        }
-        leaf(0);
-        leaf(Math.PI / 2);
-        leaf(Math.PI);
-        leaf(-Math.PI / 2);
-
-        // стебель
-        ctx.beginPath();
-        ctx.moveTo(0, r * 0.7);
-        ctx.quadraticCurveTo(size * 0.12, r * 1.4, size * 0.2, r * 1.8);
-        ctx.stroke();
-      } else if (b.type === BONUS_TYPE_SHIELD) {
-        // щит 🛡
-        ctx.beginPath();
-        const w = size * 1.1;
-        const h = size * 1.3;
-        ctx.moveTo(0, -h * 0.6);
-        ctx.quadraticCurveTo(w * 0.6, -h * 0.4, w * 0.4, 0);
-        ctx.quadraticCurveTo(0, h * 0.8, 0, h * 1.1);
-        ctx.quadraticCurveTo(0, h * 0.8, -w * 0.4, 0);
-        ctx.quadraticCurveTo(-w * 0.6, -h * 0.4, 0, -h * 0.6);
-        ctx.closePath();
-        const shieldGrad = ctx.createLinearGradient(0, -h, 0, h);
-        shieldGrad.addColorStop(0, '#e0f2fe');
-        shieldGrad.addColorStop(0.5, '#38bdf8');
-        shieldGrad.addColorStop(1, '#0ea5e9');
-        ctx.fillStyle = shieldGrad;
+      if (g.type === 'phone') {
+        const w = size * 1.4;
+        const h = size * 2.2;
+        ctx.save();
+        ctx.translate(-w/2, -h*1.4);
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#0ea5e9');
+        grad.addColorStop(1, '#22c55e');
+        // корпус
+        roundedRect(0, 0, w, h, w * 0.25);
+        ctx.fillStyle = '#111827';
         ctx.fill();
-        ctx.strokeStyle = '#0369a1';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else {
-        // магнит 🧲
-        const w = size * 1.2;
-        const h = size * 1.3;
+        // экран
+        ctx.save();
+        ctx.translate(w * 0.08, h * 0.07);
+        roundedRect(0, 0, w * 0.84, h * 0.8, w * 0.18);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+        // кнопка
+        ctx.beginPath();
+        ctx.arc(w * 0.5, h * 0.88, w * 0.09, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.restore();
+      } else if (g.type === 'laptop') {
+        const w = size * 2.4;
+        const h = size * 1.6;
+        ctx.save();
+        ctx.translate(-w / 2, -h * 1.2);
+        // крышка
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#e5e7eb');
+        grad.addColorStop(1, '#cbd5f5');
+        roundedRect(0, 0, w, h, 6);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        // экран
+        ctx.save();
+        ctx.translate(w * 0.08, h * 0.12);
+        roundedRect(0, 0, w * 0.84, h * 0.7, 4);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.restore();
+        // клавиатура/основание
+        ctx.translate(-w * 0.05, h * 0.9);
+        roundedRect(0, 0, w * 1.1, h * 0.4, 4);
+        ctx.fillStyle = '#9ca3af';
+        ctx.fill();
+        ctx.restore();
+      } else if (g.type === 'headphones') {
+        const r = size * 1.4;
+        ctx.save();
+        ctx.translate(0, -r * 1.3);
         ctx.lineWidth = 3;
-        const magGrad = ctx.createLinearGradient(-w/2, 0, w/2, 0);
-        magGrad.addColorStop(0, '#f97316');
-        magGrad.addColorStop(1, '#ec4899');
-        ctx.strokeStyle = magGrad;
-
+        ctx.strokeStyle = '#e11d48';
+        // дуга
         ctx.beginPath();
-        ctx.arc(0, 0, w * 0.45, Math.PI * 0.2, Math.PI * 0.8, false);
+        ctx.arc(0, 0, r, Math.PI * 0.25, Math.PI * 0.75);
         ctx.stroke();
-
-        // ножки
+        // чашки
+        ctx.fillStyle = '#f9fafb';
         ctx.beginPath();
-        ctx.moveTo(-w * 0.4, 0);
-        ctx.lineTo(-w * 0.4, h * 0.4);
-        ctx.moveTo(w * 0.4, 0);
-        ctx.lineTo(w * 0.4, h * 0.4);
+        ctx.arc(-r * 0.7, r * 0.3, r * 0.4, 0, Math.PI * 2);
+        ctx.arc(r * 0.7, r * 0.3, r * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#111827';
         ctx.stroke();
-
-        // кончики
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#e5e7eb';
+        ctx.restore();
+      } else {
+        // приставка / геймпад
+        const w = size * 2.2;
+        const h = size * 1.3;
+        ctx.save();
+        ctx.translate(-w/2, -h*1.3);
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#0f172a');
+        grad.addColorStop(1, '#1f2937');
+        roundedRect(0, 0, w, h, h * 0.7);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // стики
         ctx.beginPath();
-        ctx.moveTo(-w * 0.4, h * 0.4);
-        ctx.lineTo(-w * 0.25, h * 0.4);
-        ctx.moveTo(w * 0.4, h * 0.4);
-        ctx.lineTo(w * 0.25, h * 0.4);
-        ctx.stroke();
+        ctx.arc(w * 0.35, h * 0.45, h * 0.16, 0, Math.PI * 2);
+        ctx.arc(w * 0.65, h * 0.45, h * 0.16, 0, Math.PI * 2);
+        ctx.fillStyle = '#111827';
+        ctx.fill();
+        // крестик
+        ctx.beginPath();
+        ctx.rect(w * 0.18, h * 0.3, h * 0.08, h * 0.3);
+        ctx.rect(w * 0.15, h * 0.38, h * 0.3, h * 0.08);
+        ctx.fill();
+        // кнопки
+        ctx.beginPath();
+        ctx.arc(w * 0.8, h * 0.35, h * 0.06, 0, Math.PI * 2);
+        ctx.arc(w * 0.86, h * 0.45, h * 0.06, 0, Math.PI * 2);
+        ctx.arc(w * 0.8, h * 0.55, h * 0.06, 0, Math.PI * 2);
+        ctx.arc(w * 0.74, h * 0.45, h * 0.06, 0, Math.PI * 2);
+        ctx.fillStyle = '#f97316';
+        ctx.fill();
+        ctx.restore();
       }
 
       ctx.restore();
     }
 
-    // Овечка: более детализированная, пушистая
+    // овечка
     function drawSheep() {
       const horizonY = gameHeight * 0.35;
       const bottomY = gameHeight * 0.9;
@@ -900,49 +678,7 @@
       ctx.fill();
       ctx.restore();
 
-      // свечение при x2
-      if (doubleActive) {
-        ctx.save();
-        ctx.globalAlpha = 0.5;
-        const grad = ctx.createRadialGradient(
-          bodyWidth * 0.5,
-          bodyHeight * 0.5,
-          bodyWidth * 0.2,
-          bodyWidth * 0.5,
-          bodyHeight * 0.5,
-          bodyWidth
-        );
-        grad.addColorStop(0, 'rgba(190, 242, 100, 0.9)');
-        grad.addColorStop(1, 'rgba(190, 242, 100, 0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(bodyWidth * 0.5, bodyHeight * 0.5, bodyWidth, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // свечение при щите
-      if (shieldCharges > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.35;
-        const grad = ctx.createRadialGradient(
-          bodyWidth * 0.5,
-          bodyHeight * 0.4,
-          bodyWidth * 0.1,
-          bodyWidth * 0.5,
-          bodyHeight * 0.4,
-          bodyWidth * 0.9
-        );
-        grad.addColorStop(0, 'rgba(129, 230, 217, 0.9)');
-        grad.addColorStop(1, 'rgba(129, 230, 217, 0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(bodyWidth * 0.5, bodyHeight * 0.4, bodyWidth * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // тело: несколько слоёв "шерсти"
+      // тело (несколько слоёв "шерсти")
       ctx.save();
       ctx.translate(bodyWidth * 0.55, bodyHeight * 0.55);
       const fluffLayers = [
@@ -955,7 +691,7 @@
         const blobs = 12;
         for (let i = 0; i < blobs; i++) {
           const angle = (Math.PI * 2 * i) / blobs;
-          const wobble = Math.sin(Date.now()/220 + i) * 2;
+          const wobble = Math.sin(Date.now()/250 + i) * 1.5;
           const dx = Math.cos(angle) * (layer.rX + wobble) * 0.7;
           const dy = Math.sin(angle) * (layer.rY + wobble) * 0.7;
           ctx.lineTo(dx, dy);
@@ -989,7 +725,7 @@
       ctx.ellipse(0, -bodyHeight * 0.02, bodyWidth * 0.16, bodyHeight * 0.2, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // глаз (блестящий)
+      // глаз
       ctx.save();
       ctx.translate(bodyWidth * 0.03, -bodyHeight * 0.06);
       ctx.beginPath();
@@ -1017,8 +753,8 @@
       const offsetY = bodyHeight * 0.95;
 
       const runPhase = Date.now() / 140;
-      const frontOffset = Math.sin(runPhase) * 4;
-      const backOffset = Math.cos(runPhase) * 4;
+      const frontOffset = Math.sin(runPhase) * 3;
+      const backOffset = Math.cos(runPhase) * 3;
 
       ctx.fillRect(bodyWidth * 0.35, offsetY + backOffset, legWidth, legHeight);
       ctx.fillRect(bodyWidth * 0.55, offsetY - backOffset, legWidth, legHeight);
@@ -1033,15 +769,13 @@
 
       const allObjects = [];
       fences.forEach(f => allObjects.push({ type: 'fence', obj: f, z: f.progress }));
-      coins.forEach(c => allObjects.push({ type: 'coin', obj: c, z: c.progress }));
-      bonuses.forEach(b => allObjects.push({ type: 'bonus', obj: b, z: b.progress }));
+      gadgets.forEach(g => allObjects.push({ type: 'gadget', obj: g, z: g.progress }));
 
       allObjects.sort((a, b) => a.z - b.z);
 
       for (const item of allObjects) {
         if (item.type === 'fence') drawFence(item.obj);
-        else if (item.type === 'coin') drawCoin(item.obj);
-        else if (item.type === 'bonus') drawBonus(item.obj);
+        else if (item.type === 'gadget') drawGadget(item.obj);
       }
 
       drawSheep();
@@ -1064,13 +798,13 @@
       if (distInt > bestDistance) {
         bestDistance = distInt;
         try {
-          localStorage.setItem('sheep_run_best', String(bestDistance));
+          localStorage.setItem('sheep_tech_run_best', String(bestDistance));
         } catch (e) {}
       }
 
       bestEl.textContent = bestDistance;
       finalBestEl.textContent = bestDistance;
-      finalCoinsEl.textContent = coinsCount;
+      finalGadgetsEl.textContent = gadgetsCount;
       gameOverScreen.classList.remove('hidden');
     }
 
