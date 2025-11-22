@@ -1,74 +1,565 @@
-// server.js
-const express = require('express');
-const cors = require('cors');
-const app = express();
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SHEEPLY Run — овечка-бегалка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-app.use(cors());
-app.use(express.json());
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #e5f2ff;
+      overflow: hidden;
+    }
 
-const players = new Map(); 
-// key: username, value: { username, bestScore, totalScore, gamesCount, updatedAt }
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(#e5f2ff, #ffffff);
+    }
 
-// POST /api/score  -> сохранить результат
-app.post('/api/score', (req, res) => {
-  const { username, score } = req.body || {};
-  if (!username || typeof score !== 'number') {
-    return res.status(400).json({ error: 'username and score required' });
-  }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation;
+    }
 
-  const cleanUsername = String(username).trim().replace(/^@/, '');
-  if (!cleanUsername) {
-    return res.status(400).json({ error: 'bad username' });
-  }
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      align-items: center;
+      z-index: 5;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      color: #111827;
+    }
 
-  const s = Math.max(0, Math.floor(score));
+    #hud span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
 
-  let player = players.get(cleanUsername);
-  if (!player) {
-    player = {
-      username: cleanUsername,
-      bestScore: s,
-      totalScore: s,
-      gamesCount: 1,
-      updatedAt: new Date()
+    /* Оверлеи */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      background: radial-gradient(circle at top, rgba(239, 246, 255, 0.98), rgba(209, 213, 219, 0.9));
+    }
+
+    .overlay-inner {
+      width: 90%;
+      max-width: 420px;
+      padding: 20px 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #ffffff, #f3f4f6);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+      text-align: center;
+      border: 1px solid rgba(209, 213, 219, 0.9);
+      color: #111827;
+    }
+
+    .overlay h1,
+    .overlay h2 {
+      margin: 0 0 12px;
+      font-weight: 700;
+    }
+
+    .overlay p {
+      margin: 0 0 16px;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #4b5563;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #111827, #4b5563);
+      color: #f9fafb;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 8px;
+    }
+
+    .stats {
+      font-size: 14px;
+      margin-top: 4px;
+      color: #6b7280;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameWrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+      <span>⭐ Очки: <strong id="scoreValue">0</strong></span>
+      <span>🏆 Рекорд: <strong id="bestValue">0</strong></span>
+    </div>
+
+    <!-- Стартовый экран -->
+    <div id="startScreen" class="overlay">
+      <div class="overlay-inner">
+        <h1>SHEEPLY Run 🐑</h1>
+        <p>
+          Милая овечка бежит по полю и перепрыгивает коробки.<br>
+          Помоги ей не споткнуться!
+        </p>
+        <button class="btn" id="startBtn">Играть</button>
+        <div class="hint">Нажми по экрану (тап / клик), чтобы прыгнуть</div>
+      </div>
+    </div>
+
+    <!-- Экран окончания игры -->
+    <div id="gameOverScreen" class="overlay hidden">
+      <div class="overlay-inner">
+        <h2>Игра окончена</h2>
+        <p class="stats">Твой счёт: <span id="finalScore">0</span></p>
+        <p class="stats">Лучший счёт: <span id="finalBest">0</span></p>
+        <button class="btn" id="restartBtn">Играть ещё раз</button>
+        <div class="hint">Попробуй пробежать ещё дальше!</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('scoreValue');
+    const bestEl = document.getElementById('bestValue');
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalBestEl = document.getElementById('finalBest');
+
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let gameWidth = 0;
+    let gameHeight = 0;
+
+    // Овечка
+    const sheep = {
+      x: 80,
+      y: 0,
+      width: 70,
+      height: 55,
+      vy: 0,
+      onGround: false
     };
-  } else {
-    player.bestScore = Math.max(player.bestScore, s);
-    player.totalScore += s;
-    player.gamesCount += 1;
-    player.updatedAt = new Date();
-  }
 
-  players.set(cleanUsername, player);
+    const gravity = 0.6;
+    const jumpForce = -11.5;
 
-  res.json({ ok: true, player });
-});
+    // Препятствия
+    const obstacles = [];
 
-// GET /api/leaderboard?limit=10&type=best|total
-app.get('/api/leaderboard', (req, res) => {
-  const limit = parseInt(req.query.limit || '10', 10);
-  const type = req.query.type === 'total' ? 'total' : 'best';
+    let baseSpeed = 4;
+    let gameSpeed = baseSpeed;
+    let spawnTimer = 0;
+    let spawnInterval = 1300;
 
-  let arr = Array.from(players.values());
+    let score = 0;
+    let bestScore = 0;
+    let isRunning = false;
+    let isGameOver = false;
+    let lastTime = 0;
 
-  if (type === 'total') {
-    arr.sort((a, b) => b.totalScore - a.totalScore);
-  } else {
-    arr.sort((a, b) => b.bestScore - a.bestScore);
-  }
+    // Сохранённый рекорд
+    try {
+      const saved = localStorage.getItem('sheeply_run_best');
+      if (saved) {
+        bestScore = parseInt(saved, 10) || 0;
+        bestEl.textContent = bestScore;
+      }
+    } catch (e) {}
 
-  arr = arr.slice(0, Math.max(1, limit));
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
 
-  res.json(arr.map(p => ({
-    username: p.username,
-    bestScore: p.bestScore,
-    totalScore: p.totalScore,
-    gamesCount: p.gamesCount
-  })));
-});
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('SHEEPLY leaderboard server running on port', PORT);
-});
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+      gameWidth = rect.width;
+      gameHeight = rect.height;
+
+      // Позиция земли
+      const groundY = gameHeight * 0.8;
+      sheep.y = groundY - sheep.height;
+    }
+
+    function resetGame() {
+      score = 0;
+      gameSpeed = baseSpeed;
+      spawnTimer = 0;
+      obstacles.length = 0;
+      isGameOver = false;
+      sheep.vy = 0;
+      sheep.onGround = true;
+
+      const groundY = gameHeight * 0.8;
+      sheep.x = gameWidth * 0.16;
+      sheep.y = groundY - sheep.height;
+
+      scoreEl.textContent = score;
+      bestEl.textContent = bestScore;
+    }
+
+    function spawnObstacle() {
+      const groundY = gameHeight * 0.8;
+      const width = 40 + Math.random() * 20;
+      const height = 30 + Math.random() * 25;
+      obstacles.push({
+        x: gameWidth + width,
+        y: groundY - height,
+        width,
+        height
+      });
+
+      // слегка рандомизируем интервал
+      spawnInterval = 900 + Math.random() * 600;
+    }
+
+    function updateSheep() {
+      const groundY = gameHeight * 0.8;
+      sheep.vy += gravity;
+      sheep.y += sheep.vy;
+
+      if (sheep.y + sheep.height >= groundY) {
+        sheep.y = groundY - sheep.height;
+        sheep.vy = 0;
+        sheep.onGround = true;
+      }
+    }
+
+    function updateObstacles(delta) {
+      const dx = gameSpeed * (delta / 16.67);
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const ob = obstacles[i];
+        ob.x -= dx;
+
+        if (ob.x + ob.width < 0) {
+          obstacles.splice(i, 1);
+        } else {
+          // коллизия с овечкой
+          if (isCollidingSheepObstacle(sheep, ob)) {
+            endGame();
+            return;
+          }
+        }
+      }
+    }
+
+    function isCollidingSheepObstacle(s, ob) {
+      // Bounding box
+      return (
+        s.x < ob.x + ob.width &&
+        s.x + s.width > ob.x &&
+        s.y < ob.y + ob.height &&
+        s.y + s.height > ob.y
+      );
+    }
+
+    function updateScore(delta) {
+      // Счёт растёт по расстоянию
+      score += (gameSpeed * delta) / 250;
+      scoreEl.textContent = Math.floor(score);
+
+      // Усложнение: увеличение скорости от счёта
+      gameSpeed = baseSpeed + Math.min(6, Math.floor(score / 80));
+    }
+
+    function update(timestamp) {
+      if (!isRunning || isGameOver) return;
+
+      if (!lastTime) lastTime = timestamp;
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+
+      spawnTimer += delta;
+
+      if (spawnTimer >= spawnInterval) {
+        spawnObstacle();
+        spawnTimer = 0;
+      }
+
+      updateSheep();
+      updateObstacles(delta);
+      updateScore(delta);
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+      // Небо уже фоном, но добавим облака
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      const cloudY = gameHeight * 0.22;
+      drawCloud(80, cloudY, 60);
+      drawCloud(gameWidth * 0.5, cloudY * 0.8, 70);
+      drawCloud(gameWidth - 80, cloudY * 1.1, 55);
+      ctx.restore();
+
+      // Земля/поле
+      const groundY = gameHeight * 0.8;
+      ctx.fillStyle = '#bbf7d0';
+      ctx.fillRect(0, groundY, gameWidth, gameHeight - groundY);
+
+      // Линия земли
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, groundY - 4, gameWidth, 4);
+    }
+
+    function drawCloud(x, y, size) {
+      ctx.beginPath();
+      ctx.fillStyle = '#ffffff';
+      const r = size / 3;
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x - r, y + r / 2, r * 0.9, 0, Math.PI * 2);
+      ctx.arc(x + r, y + r / 2, r * 0.9, 0, Math.PI * 2);
+      ctx.arc(x, y + r, r * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawSheep() {
+      const s = sheep;
+      ctx.save();
+      ctx.translate(s.x, s.y);
+
+      // тень под овечкой
+      const groundY = gameHeight * 0.8;
+      const shadowWidth = s.width * 0.9;
+      const shadowHeight = 10;
+      const shadowY = groundY - 4;
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.ellipse(
+        s.width / 2,
+        shadowY - s.y + shadowHeight,
+        shadowWidth / 2,
+        shadowHeight,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = '#16a34a';
+      ctx.fill();
+      ctx.restore();
+
+      // тело (пушистый овал)
+      ctx.save();
+      ctx.translate(s.width * 0.45, s.height * 0.5);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#d4d4d8';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      for (let i = 0; i < Math.PI * 2; i += Math.PI / 4) {
+        const dx = Math.cos(i) * (s.width * 0.3);
+        const dy = Math.sin(i) * (s.height * 0.3);
+        ctx.lineTo(dx, dy);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // голова
+      ctx.save();
+      ctx.translate(s.width * 0.1, s.height * 0.35);
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s.width * 0.18, s.height * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ушки
+      ctx.beginPath();
+      ctx.ellipse(-s.width * 0.12, -s.height * 0.1, s.width * 0.06, s.height * 0.08, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(s.width * 0.02, -s.height * 0.1, s.width * 0.06, s.height * 0.08, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // глаз
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(s.width * 0.02, -s.height * 0.02, s.width * 0.04, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.arc(s.width * 0.03, -s.height * 0.02, s.width * 0.02, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // ножки
+      ctx.fillStyle = '#111827';
+      const legWidth = s.width * 0.09;
+      const legHeight = s.height * 0.4;
+      const offsetY = s.height * 0.75;
+
+      const runPhase = Date.now() / 130;
+      const frontOffset = Math.sin(runPhase) * 3;
+      const backOffset = Math.cos(runPhase) * 3;
+
+      // задние ноги
+      ctx.fillRect(s.width * 0.35, offsetY + backOffset, legWidth, legHeight);
+      ctx.fillRect(s.width * 0.52, offsetY - backOffset, legWidth, legHeight);
+      // передние ноги
+      ctx.fillRect(s.width * 0.2, offsetY - frontOffset, legWidth, legHeight);
+      ctx.fillRect(s.width * 0.65, offsetY + frontOffset, legWidth, legHeight);
+
+      ctx.restore();
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = '#f97316'; // оранжевые коробки
+      obstacles.forEach(ob => {
+        const r = 6;
+        const x = ob.x;
+        const y = ob.y;
+        const w = ob.width;
+        const h = ob.height;
+
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // полосы на коробке
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(x + w * 0.35, y, w * 0.1, h);
+        ctx.fillStyle = '#f97316';
+      });
+    }
+
+    function draw() {
+      drawBackground();
+      drawObstacles();
+      drawSheep();
+    }
+
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+
+      update(timestamp);
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function jump() {
+      if (!isRunning || isGameOver) return;
+      if (sheep.onGround) {
+        sheep.vy = jumpForce;
+        sheep.onGround = false;
+      }
+    }
+
+    function endGame() {
+      isGameOver = true;
+      isRunning = false;
+
+      const final = Math.floor(score);
+      finalScoreEl.textContent = final;
+
+      if (final > bestScore) {
+        bestScore = final;
+        try {
+          localStorage.setItem('sheeply_run_best', String(bestScore));
+        } catch (e) {}
+      }
+
+      bestEl.textContent = bestScore;
+      finalBestEl.textContent = bestScore;
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    // Управление
+    canvas.addEventListener('click', jump);
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      jump();
+    }, { passive: false });
+
+    startBtn.addEventListener('click', () => {
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      resetGame();
+      isRunning = true;
+      lastTime = performance.now();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      gameOverScreen.classList.add('hidden');
+      resetGame();
+      isRunning = true;
+      lastTime = performance.now();
+    });
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+    });
+
+    // init
+    resizeCanvas();
+    resetGame();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
