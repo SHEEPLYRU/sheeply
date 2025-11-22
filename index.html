@@ -4,18 +4,22 @@
   <meta charset="UTF-8" />
   <title>SHEEPLY Store</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Telegram Mini App JS (опционально, но полезно) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
     :root {
-      --bg: #ffffff;
-      --text: #000000;
-      --muted: #777777;
-      --border: #000000;
-      --accent: #000000;
-      --radius-lg: 24px;
+      --bg-main: #f5f5f7;
+      --bg-card: #ffffff;
+      --border-soft: #d2d2d7;
+      --text-main: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --accent: #0071e3;
+      --accent-soft: #0071e31a;
+      --radius-lg: 22px;
       --radius-md: 16px;
-      --radius-sm: 999px;
-      --shadow-soft: 0 6px 0 #000000;
+      --shadow-soft: 0 18px 40px rgba(0,0,0,0.08);
     }
 
     * {
@@ -25,440 +29,1203 @@
     }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Roboto", sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
     }
 
     .app {
-      max-width: 480px;
-      margin: 0 auto;
       min-height: 100vh;
-      padding: 16px 16px 80px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
     }
 
-    /* Шапка */
-    .top-bar {
+    /* HEADER */
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(20px);
+      background: rgba(245,245,247,0.92);
+      border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
     }
 
-    .logo {
+    .logo-box {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-      border: 2px solid var(--border);
+      gap: 10px;
     }
 
-    .logo-icon {
-      font-size: 18px;
-      line-height: 1;
+    .logo-box img {
+      height: 38px;
+      display: block;
     }
 
-    .logo-text {
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      font-size: 14px;
-    }
-
-    .tagline {
+    .logo-tagline {
       font-size: 11px;
-      color: var(--muted);
-      text-align: right;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
     }
 
-    /* Хиро-блок */
-    .hero {
-      border-radius: var(--radius-lg);
-      border: 2px solid var(--border);
-      padding: 14px 16px;
+    .header-actions {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .hero-title {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .hero-sub {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    /* Фильтры (можешь потом оживить) */
-    .filters {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-
-    .chip {
-      white-space: nowrap;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      font-size: 12px;
-      background: #fff;
-    }
-
-    .chip--active {
-      background: #000;
-      color: #fff;
-    }
-
-    /* Каталог */
-    .products {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .product-card {
-      border-radius: var(--radius-md);
-      border: 2px solid var(--border);
-      padding: 10px 12px;
-      display: flex;
-      gap: 10px;
-      justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
-    .product-info {
-      flex: 1;
+    .search-input {
+      background: #ffffff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      border: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      gap: 6px;
       min-width: 0;
     }
 
-    .product-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    .product-specs {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-
-    .product-meta {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-    }
-
-    .price {
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .badge {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-    }
-
-    /* Кнопки */
-    .btn {
-      border-radius: 999px;
-      border: 2px solid var(--border);
-      padding: 5px 10px;
-      background: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
+    .search-input input {
+      border: none;
       outline: none;
+      font-size: 13px;
+      background: transparent;
+      width: 130px;
     }
 
-    .btn:active {
-      transform: translateY(1px);
+    .search-input span {
+      font-size: 13px;
+      color: var(--text-secondary);
     }
 
-    .btn-primary {
+    .cart-button {
+      position: relative;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 6px 14px;
+      background: #ffffff;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .cart-button:hover {
+      background: #ffffff;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    .cart-count {
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* CATEGORY TABS */
+
+    .main {
+      flex: 1;
+    }
+
+    .content {
+      max-width: 1120px;
+      margin: 10px auto 26px;
+      padding: 0 16px 32px;
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 0 10px;
+      scrollbar-width: none;
+    }
+    .category-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-tab {
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s ease, box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+    }
+
+    .category-tab img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+    }
+
+    .category-tab.active {
       background: #000;
       color: #fff;
+      border-color: transparent;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.2);
     }
 
-    .btn-ghost {
-      background: #fff;
-      color: #000;
+    .category-tab.active img {
+      filter: invert(1);
     }
 
-    /* Нижняя панель корзины */
-    .cart-bar {
-      position: fixed;
-      left: 50%;
-      bottom: 12px;
-      transform: translateX(-50%);
-      width: min(440px, 100% - 24px);
-      background: #fff;
-      border-radius: 999px;
-      border: 2px solid #000;
+    .category-tab:hover:not(.active) {
+      box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    .section-title {
+      margin-top: 18px;
+      margin-bottom: 10px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .section-subtitle {
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* PRODUCT GRID */
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .product-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px 14px;
       box-shadow: var(--shadow-soft);
-      padding: 8px 10px;
+      border: 1px solid rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .product-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      z-index: 50;
+      margin-bottom: 12px;
     }
 
-    .cart-summary {
+    .product-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .product-category {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text-secondary);
+    }
+
+    .product-image {
+      width: 60px;
+      height: 60px;
+      border-radius: 18px;
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .product-image img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .product-options {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      font-size: 11px;
+      gap: 6px;
+      margin: 6px 0 10px;
+      font-size: 13px;
     }
 
-    .cart-summary-main {
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .option-row label {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .option-row select {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 5px 10px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+
+    .product-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .price-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .product-price {
+      font-size: 16px;
       font-weight: 600;
     }
 
-    .cart-summary-sub {
-      color: var(--muted);
+    .tg-price-link {
+      font-size: 11px;
+      color: var(--accent);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    .cart-btn {
-      flex-shrink: 0;
+    .tg-price-link span {
+      font-size: 13px;
+    }
+
+    .add-btn {
       border-radius: 999px;
-      border: 2px solid #000;
-      padding: 6px 14px;
+      border: none;
       background: #000;
       color: #fff;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       cursor: pointer;
       white-space: nowrap;
+      transition: background .15s ease, box-shadow .15s ease, transform .15s ease;
     }
 
-    .cart-btn:active {
-      transform: translateY(1px);
+    .add-btn:hover {
+      background: #1d1d1f;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+      transform: translateY(-1px);
     }
 
-    @media (min-width: 600px) {
-      body {
-        background: #f5f5f5;
+    /* CART SIDEBAR */
+
+    .cart-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.28);
+      display: none;
+      justify-content: flex-end;
+      z-index: 40;
+    }
+
+    .cart-overlay.open {
+      display: flex;
+    }
+
+    .cart-panel {
+      width: 100%;
+      max-width: 420px;
+      background: #f5f5f7;
+      height: 100%;
+      box-shadow: -18px 0 40px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cart-header {
+      padding: 16px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      backdrop-filter: blur(20px);
+      background: rgba(245,245,247,0.96);
+    }
+
+    .cart-header-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .cart-close-btn {
+      border-radius: 999px;
+      border: none;
+      background: rgba(0,0,0,0.06);
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .cart-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 16px 16px;
+    }
+
+    .cart-empty {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .cart-item {
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 10px 11px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .cart-item-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .cart-item-icon img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .cart-item-main {
+      flex: 1;
+    }
+
+    .cart-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .cart-item-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .cart-item-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .cart-qty {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .qty-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.16);
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .cart-item-price {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .cart-remove-btn {
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .cart-footer {
+      padding: 10px 16px 16px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      background: rgba(245,245,247,0.96);
+    }
+
+    .cart-total-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .cart-total-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .cart-total-value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .cart-tg-link {
+      font-size: 11px;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .cart-tg-link a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .checkout-btn {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      background: #000;
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .checkout-btn:hover {
+      background: #1d1d1f;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.24);
+      transform: translateY(-1px);
+    }
+
+    .checkout-btn span {
+      font-size: 18px;
+    }
+
+    @media (max-width: 640px) {
+      .header-inner {
+        padding-inline: 12px;
       }
-      .app {
-        margin-top: 18px;
-        margin-bottom: 80px;
+      .section-title {
+        font-size: 18px;
+      }
+      .product-card {
+        padding-inline: 14px;
+      }
+      .search-input input {
+        width: 100px;
+      }
+      .cart-panel {
+        max-width: 100%;
       }
     }
   </style>
 </head>
+
 <body>
-  <div class="app">
-    <header class="top-bar">
-      <div class="logo">
-        <span class="logo-icon">🐑</span>
-        <span class="logo-text">SHEEPLY</span>
+<div class="app">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-box">
+        <!-- Логотип из первого кода -->
+        <img src="/mnt/data/SHEEPLY.png" alt="SHEEPLY logo">
+        <div class="logo-tagline">Техника • Apple style</div>
       </div>
-      <p class="tagline">Техника как новая,<br />с человеческим сервисом</p>
-    </header>
 
-    <section class="hero">
-      <h1 class="hero-title">Каталог техники</h1>
-      <p class="hero-sub">
-        Выберите устройство, нажмите «В корзину» и оформите заказ прямо в Telegram.
-      </p>
-    </section>
-
-    <section class="filters" aria-label="Категории">
-      <button class="chip chip--active" type="button">Все</button>
-      <button class="chip" type="button">iPhone</button>
-      <button class="chip" type="button">Mac</button>
-      <button class="chip" type="button">iPad</button>
-      <button class="chip" type="button">AirPods</button>
-    </section>
-
-    <main class="products" id="productList">
-      <!-- Карточки товаров генерируются из JS, но можно и руками -->
-    </main>
-  </div>
-
-  <!-- Нижняя панель корзины -->
-  <div class="cart-bar" id="cartBar">
-    <div class="cart-summary">
-      <span class="cart-summary-main" id="cartCount">Корзина пуста</span>
-      <span class="cart-summary-sub" id="cartTotal">Добавьте товары, чтобы оформить заказ</span>
+      <div class="header-actions">
+        <div class="search-input">
+          <span>🔍</span>
+          <input type="text" id="searchInput" placeholder="Поиск модели">
+        </div>
+        <button class="cart-button" id="cartButton">
+          <span>Корзина</span>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
     </div>
-    <button class="cart-btn" id="checkoutBtn" type="button">
-      Оформить в Telegram
-    </button>
+  </header>
+
+  <main class="main">
+    <section class="content">
+      <!-- Табы категорий -->
+      <div class="category-tabs" id="categoryTabs">
+        <button class="category-tab active" data-category="all">
+          <strong>ВСЕ</strong>
+        </button>
+        <button class="category-tab" data-category="iPhone">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_36.png" alt="iPhone">
+          <span>iPhone</span>
+        </button>
+        <button class="category-tab" data-category="MacBook">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_31.png" alt="MacBook">
+          <span>MacBook</span>
+        </button>
+        <button class="category-tab" data-category="AirPods Max">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_17.png" alt="AirPods Max">
+          <span>AirPods Max</span>
+        </button>
+        <button class="category-tab" data-category="RayBan Meta">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_32_31.png" alt="RayBan Meta">
+          <span>RayBan Meta</span>
+        </button>
+        <button class="category-tab" data-category="PlayStation">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_39.png" alt="PlayStation">
+          <span>PlayStation</span>
+        </button>
+        <button class="category-tab" data-category="iPad">
+          <img src="/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_44.png" alt="iPad">
+          <span>iPad</span>
+        </button>
+      </div>
+
+      <h2 class="section-title">Техника SHEEPLY</h2>
+      <p class="section-subtitle">
+        Выбирай модель, конфигурацию памяти, SIM и добавляй в корзину.
+      </p>
+
+      <div class="grid" id="productGrid"></div>
+    </section>
+  </main>
+
+  <!-- КОРЗИНА -->
+  <div class="cart-overlay" id="cartOverlay">
+    <div class="cart-panel">
+      <div class="cart-header">
+        <div class="cart-header-title">Корзина</div>
+        <button class="cart-close-btn" id="cartCloseBtn">×</button>
+      </div>
+
+      <div class="cart-body">
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-empty" id="cartEmpty">Корзина пуста. Добавьте устройства 👇</div>
+      </div>
+
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <div class="cart-total-label">Итого:</div>
+          <div class="cart-total-value" id="cartTotal">0 ₽</div>
+        </div>
+        <div class="cart-tg-link">
+          Для оформления заказа напишите менеджеру в Telegram:
+          <a href="https://telegram.me/sheeplymanager" target="_blank">@sheeplymanager</a>
+        </div>
+        <button class="checkout-btn" id="checkoutBtn">
+          <span>✈️</span> Написать в Telegram
+        </button>
+      </div>
+    </div>
   </div>
+</div>
 
-  <script>
-    // Демо-данные товаров — редактируй под свои позиции
-    const products = [
-      {
-        id: "iphone-15-pro-128",
-        title: "iPhone 15 Pro 128 ГБ",
-        specs: "Состояние: как новый · Гарантия 12 мес.",
-        price: 104990,
-        badge: "В наличии"
-      },
-      {
-        id: "iphone-14-128",
-        title: "iPhone 14 128 ГБ",
-        specs: "Excellent · Гарантия 6 мес.",
-        price: 79990,
-        badge: "Лучший выбор"
-      },
-      {
-        id: "macbook-air-m2",
-        title: "MacBook Air 13'' M2",
-        specs: "8 / 256 · Серый космос · 2023",
-        price: 119990,
-        badge: "Топ по цене"
-      },
-      {
-        id: "airpods-pro-2",
-        title: "AirPods Pro 2",
-        specs: "MagSafe · Новые · Оригинал",
-        price: 27990,
-        badge: "Хит"
-      }
-    ];
+<script>
+  // ================== ДАННЫЕ ТОВАРОВ ==================
 
-    const productList = document.getElementById("productList");
-    const cartBar = document.getElementById("cartBar");
-    const cartCount = document.getElementById("cartCount");
-    const cartTotal = document.getElementById("cartTotal");
-    const checkoutBtn = document.getElementById("checkoutBtn");
+  const TELEGRAM_MANAGER_URL = "https://telegram.me/sheeplymanager";
 
-    const cart = [];
+  const storageOptionsIphone = [128, 256, 512, 1024]; // GB
+  const simOptionsIphone = ["eSIM", "1 SIM", "2 SIM"];
+  const storageExtraPrice = {
+    128: 0,
+    256: 10000,
+    512: 20000,
+    1024: 30000
+  };
+  const simExtraPrice = {
+    "eSIM": 0,
+    "1 SIM": 2500,
+    "2 SIM": 5000
+  };
 
-    function formatPrice(value) {
-      return value.toLocaleString("ru-RU") + " ₽";
+  const products = [
+    // ----------- iPhone 16 -----------
+    { id:"ip16-black",  name:"Apple iPhone 16 Black",              category:"iPhone", type:"iphone", basePrice:99990 },
+    { id:"ip16-white",  name:"Apple iPhone 16 White",              category:"iPhone", type:"iphone", basePrice:99990 },
+    { id:"ip16-pink",   name:"Apple iPhone 16 Pink",               category:"iPhone", type:"iphone", basePrice:99990 },
+    { id:"ip16-teal",   name:"Apple iPhone 16 Teal",               category:"iPhone", type:"iphone", basePrice:99990 },
+    { id:"ip16-ultr",   name:"Apple iPhone 16 Ultramarine",        category:"iPhone", type:"iphone", basePrice:99990 },
+
+    { id:"ip16p-black", name:"Apple iPhone 16 Pro Black Titanium",   category:"iPhone", type:"iphone", basePrice:129990 },
+    { id:"ip16p-white", name:"Apple iPhone 16 Pro White Titanium",   category:"iPhone", type:"iphone", basePrice:129990 },
+    { id:"ip16p-nat",   name:"Apple iPhone 16 Pro Natural Titanium", category:"iPhone", type:"iphone", basePrice:129990 },
+    { id:"ip16p-des",   name:"Apple iPhone 16 Pro Desert Titanium",  category:"iPhone", type:"iphone", basePrice:129990 },
+
+    { id:"ip16pm-black", name:"Apple iPhone 16 Pro Max Black Titanium",   category:"iPhone", type:"iphone", basePrice:149990 },
+    { id:"ip16pm-white", name:"Apple iPhone 16 Pro Max White Titanium",   category:"iPhone", type:"iphone", basePrice:149990 },
+    { id:"ip16pm-nat",   name:"Apple iPhone 16 Pro Max Natural Titanium", category:"iPhone", type:"iphone", basePrice:149990 },
+    { id:"ip16pm-des",   name:"Apple iPhone 16 Pro Max Desert Titanium",  category:"iPhone", type:"iphone", basePrice:149990 },
+
+    // ----------- iPhone 17 -----------
+    { id:"ip17-black", name:"Apple iPhone 17 Black",       category:"iPhone", type:"iphone", basePrice:109990 },
+    { id:"ip17-white", name:"Apple iPhone 17 White",       category:"iPhone", type:"iphone", basePrice:109990 },
+    { id:"ip17-mist",  name:"Apple iPhone 17 Mist Blue",   category:"iPhone", type:"iphone", basePrice:109990 },
+    { id:"ip17-sage",  name:"Apple iPhone 17 Sage",        category:"iPhone", type:"iphone", basePrice:109990 },
+    { id:"ip17-lav",   name:"Apple iPhone 17 Lavender",    category:"iPhone", type:"iphone", basePrice:109990 },
+
+    { id:"ip17p-org",  name:"Apple iPhone 17 Pro Cosmic Orange", category:"iPhone", type:"iphone", basePrice:139990 },
+    { id:"ip17p-blue", name:"Apple iPhone 17 Pro Deep Blue",     category:"iPhone", type:"iphone", basePrice:139990 },
+    { id:"ip17p-silv", name:"Apple iPhone 17 Pro Silver",        category:"iPhone", type:"iphone", basePrice:139990 },
+
+    { id:"ip17pm-org",  name:"Apple iPhone 17 Pro Max Cosmic Orange", category:"iPhone", type:"iphone", basePrice:159990 },
+    { id:"ip17pm-blue", name:"Apple iPhone 17 Pro Max Deep Blue",     category:"iPhone", type:"iphone", basePrice:159990 },
+    { id:"ip17pm-silv", name:"Apple iPhone 17 Pro Max Silver",        category:"iPhone", type:"iphone", basePrice:159990 },
+
+    // ----------- iPhone Air -----------
+    { id:"ipair-sb",   name:"Apple iPhone Air Space Black",  category:"iPhone", type:"iphone", basePrice:89990 },
+    { id:"ipair-cw",   name:"Apple iPhone Air Cloud White",  category:"iPhone", type:"iphone", basePrice:89990 },
+    { id:"ipair-sky",  name:"Apple iPhone Air Sky Blue",     category:"iPhone", type:"iphone", basePrice:89990 },
+    { id:"ipair-gold", name:"Apple iPhone Air Light Gold",   category:"iPhone", type:"iphone", basePrice:89990 },
+
+    // ----------- MacBook ----------
+    {
+      id:"mba13-m2-sg",
+      name:"MacBook Air 13 M2 / 16GB / 256GB Space Gray",
+      category:"MacBook", type:"mac",
+      basePrice:129990
+    },
+    {
+      id:"mba13-m2-silver",
+      name:"MacBook Air 13 M2 / 16GB / 256GB Silver",
+      category:"MacBook", type:"mac",
+      basePrice:129990
+    },
+    {
+      id:"mba13-m2-midnight",
+      name:"MacBook Air 13 M2 / 16GB / 256GB Midnight",
+      category:"MacBook", type:"mac",
+      basePrice:129990
+    },
+    {
+      id:"mba13-m2-star",
+      name:"MacBook Air 13 M2 / 16GB / 256GB Starlight",
+      category:"MacBook", type:"mac",
+      basePrice:129990
+    },
+    {
+      id:"mba13-m4-midnight",
+      name:"MacBook Air 13 M4 / 16GB / 256GB Midnight",
+      category:"MacBook", type:"mac",
+      basePrice:149990
+    },
+    {
+      id:"mba13-m4-silver",
+      name:"MacBook Air 13 M4 / 16GB / 256GB Silver",
+      category:"MacBook", type:"mac",
+      basePrice:149990
+    },
+    {
+      id:"mba13-m4-sky",
+      name:"MacBook Air 13 M4 / 16GB / 256GB Sky Blue",
+      category:"MacBook", type:"mac",
+      basePrice:149990
+    },
+    {
+      id:"mba13-m4-star",
+      name:"MacBook Air 13 M4 / 16GB / 256GB Starlight",
+      category:"MacBook", type:"mac",
+      basePrice:149990
+    },
+    {
+      id:"mba15-m4-midnight",
+      name:"MacBook Air 15 M4 / 16GB / 256GB Midnight",
+      category:"MacBook", type:"mac",
+      basePrice:169990
+    },
+    {
+      id:"mba15-m4-silver",
+      name:"MacBook Air 15 M4 / 16GB / 256GB Silver",
+      category:"MacBook", type:"mac",
+      basePrice:169990
+    },
+    {
+      id:"mba15-m4-sky",
+      name:"MacBook Air 15 M4 / 16GB / 256GB Sky Blue",
+      category:"MacBook", type:"mac",
+      basePrice:169990
+    },
+    {
+      id:"mba15-m4-star",
+      name:"MacBook Air 15 M4 / 16GB / 256GB Starlight",
+      category:"MacBook", type:"mac",
+      basePrice:169990
+    },
+
+    // ---------- AirPods Max ----------
+    { id:"apm-silver", name:"AirPods Max Silver",          category:"AirPods Max", type:"airpods", basePrice:69990 },
+    { id:"apm-space",  name:"AirPods Max Space Gray",      category:"AirPods Max", type:"airpods", basePrice:69990 },
+    { id:"apm-blue",   name:"AirPods Max Sky Blue",        category:"AirPods Max", type:"airpods", basePrice:69990 },
+    { id:"apm-green",  name:"AirPods Max Green",           category:"AirPods Max", type:"airpods", basePrice:69990 },
+    { id:"apm-pink",   name:"AirPods Max Pink",            category:"AirPods Max", type:"airpods", basePrice:69990 },
+
+    // ---------- RayBan Meta ----------
+    { id:"rbm-wayfarer-b", name:"Ray-Ban Meta Wayfarer Black",  category:"RayBan Meta", type:"rayban", basePrice:54990 },
+    { id:"rbm-wayfarer-brown", name:"Ray-Ban Meta Wayfarer Brown", category:"RayBan Meta", type:"rayban", basePrice:54990 },
+    { id:"rbm-headliner", name:"Ray-Ban Meta Headliner Black", category:"RayBan Meta", type:"rayban", basePrice:56990 },
+
+    // ---------- PlayStation ----------
+    { id:"ps5-slim",   name:"PlayStation 5 Slim 1TB",     category:"PlayStation", type:"ps", basePrice:65990 },
+    { id:"ps5-digital",name:"PlayStation 5 Digital Edition", category:"PlayStation", type:"ps", basePrice:61990 },
+    { id:"ps5-pro",    name:"PlayStation 5 Pro",          category:"PlayStation", type:"ps", basePrice:79990 },
+
+    // ---------- iPad ----------
+    { id:"ipad11",   name:"iPad 11\" (M2) Wi-Fi 128GB",    category:"iPad", type:"ipad", basePrice:69990 },
+    { id:"ipad11c",  name:"iPad 11\" (M2) Wi-Fi + Cellular 256GB", category:"iPad", type:"ipad", basePrice:82990 },
+    { id:"ipadpro11",name:"iPad Pro 11\" (M4) Wi-Fi 256GB",category:"iPad", type:"ipad", basePrice:109990 },
+    { id:"ipadpro13",name:"iPad Pro 13\" (M4) Wi-Fi 512GB",category:"iPad", type:"ipad", basePrice:139990 }
+  ];
+
+  // Используем одни и те же иконки по категориям
+  const categoryIcons = {
+    "iPhone": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_36.png",
+    "MacBook": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_31.png",
+    "AirPods Max": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_17.png",
+    "RayBan Meta": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_32_31.png",
+    "PlayStation": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_39.png",
+    "iPad": "/mnt/data/ChatGPT Image 22 нояб. 2025 г., 17_41_44.png"
+  };
+
+  // ================== СОСТОЯНИЕ ==================
+
+  let activeCategory = "all";
+  let searchQuery = "";
+  let cart = [];
+
+  const productGrid = document.getElementById("productGrid");
+  const categoryTabs = Array.from(document.querySelectorAll(".category-tab"));
+  const searchInput = document.getElementById("searchInput");
+  const cartOverlay = document.getElementById("cartOverlay");
+  const cartButton = document.getElementById("cartButton");
+  const cartCloseBtn = document.getElementById("cartCloseBtn");
+  const cartItemsContainer = document.getElementById("cartItems");
+  const cartEmpty = document.getElementById("cartEmpty");
+  const cartTotalEl = document.getElementById("cartTotal");
+  const cartCountEl = document.getElementById("cartCount");
+  const checkoutBtn = document.getElementById("checkoutBtn");
+
+  // ================== РЕНДЕР ТОВАРОВ ==================
+
+  function formatPrice(value) {
+    return value.toLocaleString("ru-RU") + " ₽";
+  }
+
+  function getProductFinalPrice(product, storage, sim) {
+    if (product.type === "iphone") {
+      const extraStorage = storageExtraPrice[storage] || 0;
+      const extraSim = simExtraPrice[sim] || 0;
+      return product.basePrice + extraStorage + extraSim;
+    }
+    return product.basePrice;
+  }
+
+  function renderProducts() {
+    productGrid.innerHTML = "";
+
+    const filtered = products.filter(p => {
+      const byCategory = (activeCategory === "all") || (p.category === activeCategory);
+      const bySearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return byCategory && bySearch;
+    });
+
+    if (!filtered.length) {
+      productGrid.innerHTML = "<p>Ничего не найдено. Попробуйте изменить фильтр.</p>";
+      return;
     }
 
-    function renderProducts() {
-      productList.innerHTML = "";
-      products.forEach((p) => {
-        const card = document.createElement("article");
-        card.className = "product-card";
-        card.dataset.id = p.id;
-        card.innerHTML = `
-          <div class="product-info">
-            <h2 class="product-title">${p.title}</h2>
-            <p class="product-specs">${p.specs}</p>
-            <span class="badge">${p.badge}</span>
-          </div>
-          <div class="product-meta">
-            <div class="price">${formatPrice(p.price)}</div>
-            <button class="btn btn-ghost add-btn" type="button">
-              В корзину
-            </button>
-          </div>
-        `;
-        const btn = card.querySelector(".add-btn");
-        btn.addEventListener("click", () => addToCart(p));
-        productList.appendChild(card);
+    for (const product of filtered) {
+      const card = document.createElement("article");
+      card.className = "product-card";
+      card.dataset.id = product.id;
+
+      const header = document.createElement("div");
+      header.className = "product-header";
+
+      const headerText = document.createElement("div");
+      const titleEl = document.createElement("div");
+      titleEl.className = "product-title";
+      titleEl.textContent = product.name;
+      const catEl = document.createElement("div");
+      catEl.className = "product-category";
+      catEl.textContent = product.category;
+      headerText.appendChild(titleEl);
+      headerText.appendChild(catEl);
+
+      const imageWrap = document.createElement("div");
+      imageWrap.className = "product-image";
+      const img = document.createElement("img");
+      img.src = categoryIcons[product.category];
+      img.alt = product.category;
+      imageWrap.appendChild(img);
+
+      header.appendChild(headerText);
+      header.appendChild(imageWrap);
+
+      card.appendChild(header);
+
+      // Опции
+      const optionsWrap = document.createElement("div");
+      optionsWrap.className = "product-options";
+
+      let storageSelect, simSelect;
+
+      if (product.type === "iphone") {
+        const storageRow = document.createElement("div");
+        storageRow.className = "option-row";
+        const storageLabel = document.createElement("label");
+        storageLabel.textContent = "Память";
+        storageSelect = document.createElement("select");
+        storageOptionsIphone.forEach(size => {
+          const opt = document.createElement("option");
+          opt.value = size;
+          opt.textContent = size + " GB";
+          storageSelect.appendChild(opt);
+        });
+        storageRow.appendChild(storageLabel);
+        storageRow.appendChild(storageSelect);
+        optionsWrap.appendChild(storageRow);
+
+        const simRow = document.createElement("div");
+        simRow.className = "option-row";
+        const simLabel = document.createElement("label");
+        simLabel.textContent = "SIM / eSIM";
+        simSelect = document.createElement("select");
+        simOptionsIphone.forEach(type => {
+          const opt = document.createElement("option");
+          opt.value = type;
+          opt.textContent = type;
+          simSelect.appendChild(opt);
+        });
+        simRow.appendChild(simLabel);
+        simRow.appendChild(simSelect);
+        optionsWrap.appendChild(simRow);
+      }
+
+      if (product.type === "ipad") {
+        const row = document.createElement("div");
+        row.className = "option-row";
+        const label = document.createElement("label");
+        label.textContent = "Тип";
+        const sel = document.createElement("select");
+        ["Wi-Fi", "Wi-Fi + Cellular"].forEach(t => {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          sel.appendChild(opt);
+        });
+        row.appendChild(label);
+        row.appendChild(sel);
+        optionsWrap.appendChild(row);
+      }
+
+      card.appendChild(optionsWrap);
+
+      // Футер
+      const footer = document.createElement("div");
+      footer.className = "product-footer";
+
+      const priceBox = document.createElement("div");
+      priceBox.className = "price-box";
+      const priceEl = document.createElement("div");
+      priceEl.className = "product-price";
+
+      const defaultStorage = product.type === "iphone" ? storageOptionsIphone[0] : null;
+      const defaultSim = product.type === "iphone" ? simOptionsIphone[0] : null;
+      const initialPrice = getProductFinalPrice(product, defaultStorage, defaultSim);
+      priceEl.textContent = formatPrice(initialPrice);
+
+      const tgLink = document.createElement("a");
+      tgLink.className = "tg-price-link";
+      tgLink.href = TELEGRAM_MANAGER_URL;
+      tgLink.target = "_blank";
+      tgLink.innerHTML = '<span>✈️</span>Связаться по цене';
+
+      priceBox.appendChild(priceEl);
+      priceBox.appendChild(tgLink);
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "add-btn";
+      addBtn.innerHTML = '<span>+</span> В корзину';
+
+      // Обновление цены при смене опций
+      function updatePriceFromOptions() {
+        let storageVal = defaultStorage;
+        let simVal = defaultSim;
+        if (product.type === "iphone") {
+          storageVal = Number(storageSelect.value);
+          simVal = simSelect.value;
+        }
+        const price = getProductFinalPrice(product, storageVal, simVal);
+        priceEl.textContent = formatPrice(price);
+        return price;
+      }
+
+      if (product.type === "iphone") {
+        storageSelect.addEventListener("change", updatePriceFromOptions);
+        simSelect.addEventListener("change", updatePriceFromOptions);
+      }
+
+      // Добавление в корзину
+      addBtn.addEventListener("click", () => {
+        let storageVal = null;
+        let simVal = null;
+        if (product.type === "iphone") {
+          storageVal = Number(storageSelect.value);
+          simVal = simSelect.value;
+        }
+        const price = updatePriceFromOptions();
+        addToCart(product, { storage: storageVal, sim: simVal }, price);
+      });
+
+      footer.appendChild(priceBox);
+      footer.appendChild(addBtn);
+
+      card.appendChild(footer);
+      productGrid.appendChild(card);
+    }
+  }
+
+  // ================== КОРЗИНА ==================
+
+  function addToCart(product, options, price) {
+    const key = JSON.stringify({ id: product.id, options });
+
+    const existing = cart.find(item => item.key === key);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      cart.push({
+        key,
+        productId: product.id,
+        name: product.name,
+        category: product.category,
+        price,
+        options,
+        icon: categoryIcons[product.category],
+        qty: 1
       });
     }
+    renderCart();
+  }
 
-    function updateCartBar() {
-      if (cart.length === 0) {
-        cartCount.textContent = "Корзина пуста";
-        cartTotal.textContent = "Добавьте товары, чтобы оформить заказ";
-        return;
-      }
-      const count = cart.reduce((sum, item) => sum + item.qty, 0);
-      const total = cart.reduce(
-        (sum, item) => sum + item.qty * item.price,
-        0
-      );
+  function renderCart() {
+    cartItemsContainer.innerHTML = "";
 
-      cartCount.textContent = `${count} ${decline(count, [
-        "товар",
-        "товара",
-        "товаров"
-      ])}`;
-      cartTotal.textContent = `Сумма: ${formatPrice(total)}`;
+    if (!cart.length) {
+      cartEmpty.style.display = "block";
+    } else {
+      cartEmpty.style.display = "none";
     }
 
-    function decline(n, forms) {
-      const mod10 = n % 10;
-      const mod100 = n % 100;
-      if (mod10 === 1 && mod100 !== 11) return forms[0];
-      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20))
-        return forms[1];
-      return forms[2];
-    }
+    let total = 0;
+    let totalCount = 0;
 
-    function addToCart(product) {
-      const existing = cart.find((item) => item.id === product.id);
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        cart.push({ ...product, qty: 1 });
-      }
-      updateCartBar();
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.HapticFeedback?.impactOccurred("light");
-      }
-    }
+    cart.forEach(item => {
+      total += item.price * item.qty;
+      totalCount += item.qty;
 
-    function sendOrder() {
-      if (cart.length === 0) {
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert("Корзина пока пустая 🙂");
-        } else {
-          alert("Корзина пустая");
+      const row = document.createElement("div");
+      row.className = "cart-item";
+
+      const icon = document.createElement("div");
+      icon.className = "cart-item-icon";
+      const img = document.createElement("img");
+      img.src = item.icon;
+      img.alt = item.category;
+      icon.appendChild(img);
+
+      const main = document.createElement("div");
+      main.className = "cart-item-main";
+
+      const title = document.createElement("div");
+      title.className = "cart-item-title";
+      title.textContent = item.name;
+
+      const meta = document.createElement("div");
+      meta.className = "cart-item-meta";
+
+      const parts = [];
+      if (item.options && item.options.storage) {
+        parts.push(item.options.storage + " GB");
+      }
+      if (item.options && item.options.sim) {
+        parts.push(item.options.sim);
+      }
+      meta.textContent = parts.join(" • ");
+
+      const bottom = document.createElement("div");
+      bottom.className = "cart-item-bottom";
+
+      const qtyBox = document.createElement("div");
+      qtyBox.className = "cart-qty";
+      const minus = document.createElement("button");
+      minus.className = "qty-btn";
+      minus.textContent = "−";
+      const qtyLabel = document.createElement("span");
+      qtyLabel.textContent = item.qty;
+      const plus = document.createElement("button");
+      plus.className = "qty-btn";
+      plus.textContent = "+";
+
+      minus.addEventListener("click", () => {
+        item.qty -= 1;
+        if (item.qty <= 0) {
+          cart = cart.filter(c => c.key !== item.key);
         }
-        return;
-      }
+        renderCart();
+      });
 
-      const total = cart.reduce(
-        (sum, item) => sum + item.qty * item.price,
-        0
-      );
+      plus.addEventListener("click", () => {
+        item.qty += 1;
+        renderCart();
+      });
 
-      const payload = {
-        type: "order",
-        items: cart.map(({ id, title, price, qty }) => ({
-          id,
-          title,
-          price,
-          qty
-        })),
-        total
-      };
+      qtyBox.appendChild(minus);
+      qtyBox.appendChild(qtyLabel);
+      qtyBox.appendChild(plus);
 
-      const json = JSON.stringify(payload);
+      const price = document.createElement("div");
+      price.className = "cart-item-price";
+      price.textContent = formatPrice(item.price * item.qty);
 
-      if (window.Telegram?.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.sendData(json); // бот получит это в callback_query.data или web_app_data
-      } else {
-        // Для тестов в обычном браузере
-        alert("Демо-заказ:\n" + json);
-      }
-    }
+      bottom.appendChild(qtyBox);
+      bottom.appendChild(price);
 
-    checkoutBtn.addEventListener("click", sendOrder);
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "cart-remove-btn";
+      removeBtn.textContent = "Удалить";
+      removeBtn.addEventListener("click", () => {
+        cart = cart.filter(c => c.key !== item.key);
+        renderCart();
+      });
 
-    // Инициализация Telegram WebApp, если открыто внутри Telegram
-    (function initTelegram() {
-      if (!window.Telegram || !window.Telegram.WebApp) return;
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-    })();
+      main.appendChild(title);
+      if (meta.textContent) main.appendChild(meta);
+      main.appendChild(bottom);
+      main.appendChild(removeBtn);
 
+      row.appendChild(icon);
+      row.appendChild(main);
+
+      cartItemsContainer.appendChild(row);
+    });
+
+    cartTotalEl.textContent = formatPrice(total);
+    cartCountEl.textContent = totalCount.toString();
+  }
+
+  // ================== СОБЫТИЯ UI ==================
+
+  categoryTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      categoryTabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      activeCategory = tab.dataset.category;
+      renderProducts();
+    });
+  });
+
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value;
     renderProducts();
-    updateCartBar();
-  </script>
+  });
+
+  cartButton.addEventListener("click", () => {
+    cartOverlay.classList.add("open");
+  });
+
+  cartCloseBtn.addEventListener("click", () => {
+    cartOverlay.classList.remove("open");
+  });
+
+  cartOverlay.addEventListener("click", (e) => {
+    if (e.target === cartOverlay) {
+      cartOverlay.classList.remove("open");
+    }
+  });
+
+  checkoutBtn.addEventListener("click", () => {
+    // Для мини-аппа Telegram можно использовать tg.openTelegramLink
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.openTelegramLink(TELEGRAM_MANAGER_URL);
+    } else {
+      window.open(TELEGRAM_MANAGER_URL, "_blank");
+    }
+  });
+
+  // ================== ИНИЦИАЛИЗАЦИЯ ==================
+
+  (function initTelegram() {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (!tg) return;
+    tg.expand();
+    tg.ready();
+    tg.MainButton.hide();
+  })();
+
+  renderProducts();
+  renderCart();
+</script>
 </body>
 </html>
