@@ -1,29 +1,464 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Sheeply Store</title>
+  <title>SHEEPLY Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { 
-      background:#fff; 
-      font-family: sans-serif; 
-      padding:20px;
+    :root {
+      --bg: #ffffff;
+      --text: #000000;
+      --muted: #777777;
+      --border: #000000;
+      --accent: #000000;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 999px;
+      --shadow-soft: 0 6px 0 #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Roboto", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 16px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Шапка */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+    }
+
+    .logo-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-size: 14px;
+    }
+
+    .tagline {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* Хиро-блок */
+    .hero {
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hero-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .hero-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Фильтры (можешь потом оживить) */
+    .filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .chip {
+      white-space: nowrap;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    .chip--active {
+      background: #000;
+      color: #fff;
+    }
+
+    /* Каталог */
+    .products {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .product-card {
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border);
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .product-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .product-specs {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .product-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .price {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    /* Кнопки */
+    .btn {
+      border-radius: 999px;
+      border: 2px solid var(--border);
+      padding: 5px 10px;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-ghost {
+      background: #fff;
+      color: #000;
+    }
+
+    /* Нижняя панель корзины */
+    .cart-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      width: min(440px, 100% - 24px);
+      background: #fff;
+      border-radius: 999px;
+      border: 2px solid #000;
+      box-shadow: var(--shadow-soft);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 50;
+    }
+
+    .cart-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+
+    .cart-summary-main {
+      font-weight: 600;
+    }
+
+    .cart-summary-sub {
+      color: var(--muted);
+    }
+
+    .cart-btn {
+      flex-shrink: 0;
+      border-radius: 999px;
+      border: 2px solid #000;
+      padding: 6px 14px;
+      background: #000;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .cart-btn:active {
+      transform: translateY(1px);
+    }
+
+    @media (min-width: 600px) {
+      body {
+        background: #f5f5f5;
+      }
+      .app {
+        margin-top: 18px;
+        margin-bottom: 80px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Sheeply Store</h1>
-  <p>Welcome to the catalog!</p>
+  <div class="app">
+    <header class="top-bar">
+      <div class="logo">
+        <span class="logo-icon">🐑</span>
+        <span class="logo-text">SHEEPLY</span>
+      </div>
+      <p class="tagline">Техника как новая,<br />с человеческим сервисом</p>
+    </header>
 
-  <button onclick="sendData()">Send</button>
+    <section class="hero">
+      <h1 class="hero-title">Каталог техники</h1>
+      <p class="hero-sub">
+        Выберите устройство, нажмите «В корзину» и оформите заказ прямо в Telegram.
+      </p>
+    </section>
+
+    <section class="filters" aria-label="Категории">
+      <button class="chip chip--active" type="button">Все</button>
+      <button class="chip" type="button">iPhone</button>
+      <button class="chip" type="button">Mac</button>
+      <button class="chip" type="button">iPad</button>
+      <button class="chip" type="button">AirPods</button>
+    </section>
+
+    <main class="products" id="productList">
+      <!-- Карточки товаров генерируются из JS, но можно и руками -->
+    </main>
+  </div>
+
+  <!-- Нижняя панель корзины -->
+  <div class="cart-bar" id="cartBar">
+    <div class="cart-summary">
+      <span class="cart-summary-main" id="cartCount">Корзина пуста</span>
+      <span class="cart-summary-sub" id="cartTotal">Добавьте товары, чтобы оформить заказ</span>
+    </div>
+    <button class="cart-btn" id="checkoutBtn" type="button">
+      Оформить в Telegram
+    </button>
+  </div>
 
   <script>
-    function sendData() {
-      Telegram.WebApp.sendData("User clicked!");
+    // Демо-данные товаров — редактируй под свои позиции
+    const products = [
+      {
+        id: "iphone-15-pro-128",
+        title: "iPhone 15 Pro 128 ГБ",
+        specs: "Состояние: как новый · Гарантия 12 мес.",
+        price: 104990,
+        badge: "В наличии"
+      },
+      {
+        id: "iphone-14-128",
+        title: "iPhone 14 128 ГБ",
+        specs: "Excellent · Гарантия 6 мес.",
+        price: 79990,
+        badge: "Лучший выбор"
+      },
+      {
+        id: "macbook-air-m2",
+        title: "MacBook Air 13'' M2",
+        specs: "8 / 256 · Серый космос · 2023",
+        price: 119990,
+        badge: "Топ по цене"
+      },
+      {
+        id: "airpods-pro-2",
+        title: "AirPods Pro 2",
+        specs: "MagSafe · Новые · Оригинал",
+        price: 27990,
+        badge: "Хит"
+      }
+    ];
+
+    const productList = document.getElementById("productList");
+    const cartBar = document.getElementById("cartBar");
+    const cartCount = document.getElementById("cartCount");
+    const cartTotal = document.getElementById("cartTotal");
+    const checkoutBtn = document.getElementById("checkoutBtn");
+
+    const cart = [];
+
+    function formatPrice(value) {
+      return value.toLocaleString("ru-RU") + " ₽";
     }
 
-    Telegram.WebApp.ready();
+    function renderProducts() {
+      productList.innerHTML = "";
+      products.forEach((p) => {
+        const card = document.createElement("article");
+        card.className = "product-card";
+        card.dataset.id = p.id;
+        card.innerHTML = `
+          <div class="product-info">
+            <h2 class="product-title">${p.title}</h2>
+            <p class="product-specs">${p.specs}</p>
+            <span class="badge">${p.badge}</span>
+          </div>
+          <div class="product-meta">
+            <div class="price">${formatPrice(p.price)}</div>
+            <button class="btn btn-ghost add-btn" type="button">
+              В корзину
+            </button>
+          </div>
+        `;
+        const btn = card.querySelector(".add-btn");
+        btn.addEventListener("click", () => addToCart(p));
+        productList.appendChild(card);
+      });
+    }
+
+    function updateCartBar() {
+      if (cart.length === 0) {
+        cartCount.textContent = "Корзина пуста";
+        cartTotal.textContent = "Добавьте товары, чтобы оформить заказ";
+        return;
+      }
+      const count = cart.reduce((sum, item) => sum + item.qty, 0);
+      const total = cart.reduce(
+        (sum, item) => sum + item.qty * item.price,
+        0
+      );
+
+      cartCount.textContent = `${count} ${decline(count, [
+        "товар",
+        "товара",
+        "товаров"
+      ])}`;
+      cartTotal.textContent = `Сумма: ${formatPrice(total)}`;
+    }
+
+    function decline(n, forms) {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      if (mod10 === 1 && mod100 !== 11) return forms[0];
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20))
+        return forms[1];
+      return forms[2];
+    }
+
+    function addToCart(product) {
+      const existing = cart.find((item) => item.id === product.id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ ...product, qty: 1 });
+      }
+      updateCartBar();
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.HapticFeedback?.impactOccurred("light");
+      }
+    }
+
+    function sendOrder() {
+      if (cart.length === 0) {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert("Корзина пока пустая 🙂");
+        } else {
+          alert("Корзина пустая");
+        }
+        return;
+      }
+
+      const total = cart.reduce(
+        (sum, item) => sum + item.qty * item.price,
+        0
+      );
+
+      const payload = {
+        type: "order",
+        items: cart.map(({ id, title, price, qty }) => ({
+          id,
+          title,
+          price,
+          qty
+        })),
+        total
+      };
+
+      const json = JSON.stringify(payload);
+
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.sendData(json); // бот получит это в callback_query.data или web_app_data
+      } else {
+        // Для тестов в обычном браузере
+        alert("Демо-заказ:\n" + json);
+      }
+    }
+
+    checkoutBtn.addEventListener("click", sendOrder);
+
+    // Инициализация Telegram WebApp, если открыто внутри Telegram
+    (function initTelegram() {
+      if (!window.Telegram || !window.Telegram.WebApp) return;
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+    })();
+
+    renderProducts();
+    updateCartBar();
   </script>
 </body>
 </html>
