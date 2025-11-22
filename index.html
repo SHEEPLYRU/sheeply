@@ -2,564 +2,600 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SHEEPLY Run — овечка-бегалка</title>
+  <title>SHEEPLY Clicker + Upgrades</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+  <!-- Шрифты -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
   <style>
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #050816;
+      --bg2: #020617;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.18);
+      --card: rgba(15, 23, 42, 0.8);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
     }
 
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #e5f2ff;
-      overflow: hidden;
-    }
-
-    #gameWrapper {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      background: linear-gradient(#e5f2ff, #ffffff);
-    }
-
-    #gameCanvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      touch-action: manipulation;
-    }
-
-    /* HUD */
-    #hud {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
+      font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(56,189,248,0.18), transparent 55%),
+        radial-gradient(circle at bottom, rgba(129,140,248,0.16), transparent 55%),
+        linear-gradient(145deg, var(--bg), var(--bg2));
+      min-height: 100vh;
+      color: var(--text-main);
       display: flex;
-      gap: 12px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.06);
-      backdrop-filter: blur(10px);
-      font-size: 14px;
-      align-items: center;
-      z-index: 5;
-      pointer-events: none;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-      color: #111827;
+      justify-content: center;
+      align-items: stretch;
+      overflow: hidden;
     }
 
-    #hud span {
+    .app {
+      width: 100%;
+      max-width: 520px;
+      padding: 16px 14px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .title span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.3);
+      font-size: 11px;
+      color: var(--text-muted);
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      background: radial-gradient(circle at top left, rgba(148,163,184,0.25), rgba(15,23,42,0.95));
+      backdrop-filter: blur(16px);
     }
 
-    /* Оверлеи */
-    .overlay {
+    .stats-card {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.82));
+      box-shadow: 0 18px 40px rgba(15,23,42,0.85);
+      border: 1px solid rgba(148,163,184,0.35);
+    }
+
+    .stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .stat-value span.unit {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      margin-top: 4px;
+    }
+
+    /* Кнопка-логотип */
+    .logo-button {
+      position: relative;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      outline: none;
+      touch-action: manipulation;
+    }
+
+    .logo-shadow {
       position: absolute;
-      inset: 0;
+      inset: 16px 10px -6px;
+      border-radius: 40px;
+      background: radial-gradient(circle at bottom, rgba(15,23,42,0.8), transparent 70%);
+      opacity: 0.9;
+      filter: blur(8px);
+      z-index: 0;
+    }
+
+    .logo-button-inner {
+      position: relative;
+      z-index: 1;
+      border-radius: 36px;
+      padding: 14px 22px;
+      background:
+        radial-gradient(circle at top, rgba(248,250,252,0.14), transparent 55%),
+        linear-gradient(145deg, rgba(15,23,42,0.98), rgba(30,64,175,0.9));
+      border: 1px solid rgba(148,163,184,0.6);
+      box-shadow:
+        0 20px 35px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(15,23,42,0.8);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10;
-      background: radial-gradient(circle at top, rgba(239, 246, 255, 0.98), rgba(209, 213, 219, 0.9));
+      min-width: 230px;
+      max-width: 100%;
     }
 
-    .overlay-inner {
-      width: 90%;
-      max-width: 420px;
-      padding: 20px 18px;
-      border-radius: 22px;
-      background: linear-gradient(135deg, #ffffff, #f3f4f6);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
-      text-align: center;
-      border: 1px solid rgba(209, 213, 219, 0.9);
-      color: #111827;
+    .logo-button img {
+      display: block;
+      width: 100%;
+      max-width: 260px;
+      height: auto;
+      pointer-events: none;
+      filter: drop-shadow(0 0 12px rgba(248,250,252,0.2));
     }
 
-    .overlay h1,
-    .overlay h2 {
-      margin: 0 0 12px;
+    .logo-button:active .logo-button-inner {
+      transform: scale(0.96) translateY(2px);
+      box-shadow:
+        0 10px 20px rgba(15,23,42,0.85),
+        0 0 0 1px rgba(15,23,42,0.95);
+      transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+    }
+
+    /* Пульсация при клике */
+    .logo-button.hit .logo-button-inner {
+      animation: hit-bounce 150ms ease-out;
+    }
+
+    @keyframes hit-bounce {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    /* Всплывающий +1 */
+    .floating {
+      position: absolute;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 16px;
       font-weight: 700;
+      color: #fefce8;
+      text-shadow: 0 0 10px rgba(250,250,210,0.7);
+      pointer-events: none;
+      animation: float-up 600ms ease-out forwards;
     }
 
-    .overlay p {
-      margin: 0 0 16px;
-      font-size: 14px;
-      line-height: 1.4;
-      color: #4b5563;
+    @keyframes float-up {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-32px); }
     }
 
-    .btn {
-      display: inline-flex;
+    .footer-hint {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .footer-hint strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Магазин */
+    .shop {
+      margin-top: 10px;
+      padding: 10px 10px 4px;
+      border-radius: 18px;
+      background: radial-gradient(circle at bottom, rgba(15,23,42,0.94), rgba(15,23,42,0.86));
+      border: 1px solid rgba(148,163,184,0.45);
+      box-shadow: 0 18px 35px rgba(15,23,42,0.9);
+    }
+
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      padding: 10px 22px;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .shop-header h2 {
+      font-size: 13px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
+
+    .shop-header span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .shop-card {
+      padding: 8px 9px;
+      border-radius: 14px;
+      background: linear-gradient(150deg, rgba(15,23,42,0.98), rgba(30,64,175,0.65));
+      border: 1px solid rgba(148,163,184,0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+    }
+
+    .shop-card:nth-child(2) {
+      background: linear-gradient(160deg, rgba(15,23,42,0.98), rgba(22,163,74,0.65));
+    }
+
+    .shop-card-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .shop-card-desc {
+      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .shop-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 10px;
+      color: #e5e7eb;
+    }
+
+    .shop-meta span {
+      opacity: 0.88;
+    }
+
+    .btn-buy {
+      margin-top: 5px;
+      width: 100%;
       border-radius: 999px;
       border: none;
-      font-size: 15px;
+      padding: 6px 0;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      background: linear-gradient(135deg, #111827, #4b5563);
-      color: #f9fafb;
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      background: #fbbf24;
+      color: #111827;
+      box-shadow: 0 8px 20px rgba(251,191,36,0.55);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
     }
 
-    .btn:active {
+    .btn-buy:active {
       transform: translateY(1px) scale(0.98);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 4px 12px rgba(251,191,36,0.7);
     }
 
-    .hint {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 8px;
+    .btn-buy.disabled {
+      background: #6b7280;
+      box-shadow: none;
+      cursor: default;
+      filter: grayscale(0.3);
     }
 
-    .stats {
-      font-size: 14px;
-      margin-top: 4px;
-      color: #6b7280;
-    }
-
-    .hidden {
-      display: none;
+    @media (min-width: 480px) {
+      .title h1 { font-size: 22px; }
     }
   </style>
 </head>
 <body>
-  <div id="gameWrapper">
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="hud">
-      <span>⭐ Очки: <strong id="scoreValue">0</strong></span>
-      <span>🏆 Рекорд: <strong id="bestValue">0</strong></span>
-    </div>
-
-    <!-- Стартовый экран -->
-    <div id="startScreen" class="overlay">
-      <div class="overlay-inner">
-        <h1>SHEEPLY Run 🐑</h1>
-        <p>
-          Милая овечка бежит по полю и перепрыгивает коробки.<br>
-          Помоги ей не споткнуться!
-        </p>
-        <button class="btn" id="startBtn">Играть</button>
-        <div class="hint">Нажми по экрану (тап / клик), чтобы прыгнуть</div>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>SHEEPLY CLICKER</h1>
+        <span>Тапай по логотипу и улучшай магазином апгрейдов</span>
       </div>
-    </div>
-
-    <!-- Экран окончания игры -->
-    <div id="gameOverScreen" class="overlay hidden">
-      <div class="overlay-inner">
-        <h2>Игра окончена</h2>
-        <p class="stats">Твой счёт: <span id="finalScore">0</span></p>
-        <p class="stats">Лучший счёт: <span id="finalBest">0</span></p>
-        <button class="btn" id="restartBtn">Играть ещё раз</button>
-        <div class="hint">Попробуй пробежать ещё дальше!</div>
+      <div class="pill">
+        ⏱ <span id="sessionTime">00:00</span>
       </div>
-    </div>
+    </header>
+
+    <section class="stats-card">
+      <div class="stat">
+        <div class="stat-label">Очки</div>
+        <div class="stat-value">
+          <span id="pointsValue">0</span>
+          <span class="unit">SHP</span>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Очков / сек</div>
+        <div class="stat-value">
+          <span id="cps">0.0</span>
+          <span class="unit">CPS</span>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Лучший CPS</div>
+        <div class="stat-value">
+          <span id="bestCps">0.0</span>
+          <span class="unit">MAX</span>
+        </div>
+      </div>
+    </section>
+
+    <main class="main">
+      <button class="logo-button" id="logoButton">
+        <div class="logo-shadow"></div>
+        <div class="logo-button-inner">
+          <!-- твой логотип -->
+          <img src="sheeply-logo.png" alt="SHEEPLY logo" />
+        </div>
+      </button>
+
+      <p class="footer-hint">
+        Тапай по логотипу, чтобы зарабатывать <strong>SHP</strong>,<br />
+        а потом трать их в магазине апгрейдов ниже.
+      </p>
+    </main>
+
+    <section class="shop">
+      <div class="shop-header">
+        <h2>Магазин апгрейдов</h2>
+        <span>Прокачивай клики и пассивный доход</span>
+      </div>
+
+      <div class="shop-grid">
+        <!-- Апгрейд клика -->
+        <div class="shop-card" id="card-click">
+          <div class="shop-card-title">
+            <span>Супер-тап</span>
+            <span>Lvl <span id="clickLevelText">0</span></span>
+          </div>
+          <p class="shop-card-desc">
+            Каждый тап по логотипу даёт больше очков.
+          </p>
+          <div class="shop-meta">
+            <span>+<span id="clickValueText">1</span> SHP / клик</span>
+            <span>Цена: <span id="clickCostText">50</span> SHP</span>
+          </div>
+          <button class="btn-buy" id="buyClickBtn">Купить</button>
+        </div>
+
+        <!-- Апгрейд авто-кликов -->
+        <div class="shop-card" id="card-auto">
+          <div class="shop-card-title">
+            <span>Лояльная овечка</span>
+            <span>Lvl <span id="autoLevelText">0</span></span>
+          </div>
+          <p class="shop-card-desc">
+            Овечка кликает за тебя и даёт пассивный доход.
+          </p>
+          <div class="shop-meta">
+            <span><span id="autoRateText">0</span> SHP / сек</span>
+            <span>Цена: <span id="autoCostText">80</span> SHP</span>
+          </div>
+          <button class="btn-buy" id="buyAutoBtn">Нанять</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const logoBtn = document.getElementById('logoButton');
+    const pointsValueEl = document.getElementById('pointsValue');
+    const cpsEl = document.getElementById('cps');
+    const bestCpsEl = document.getElementById('bestCps');
+    const sessionTimeEl = document.getElementById('sessionTime');
 
-    const scoreEl = document.getElementById('scoreValue');
-    const bestEl = document.getElementById('bestValue');
-    const finalScoreEl = document.getElementById('finalScore');
-    const finalBestEl = document.getElementById('finalBest');
+    // элементы магазина
+    const clickLevelText = document.getElementById('clickLevelText');
+    const clickValueText = document.getElementById('clickValueText');
+    const clickCostText = document.getElementById('clickCostText');
+    const autoLevelText = document.getElementById('autoLevelText');
+    const autoRateText = document.getElementById('autoRateText');
+    const autoCostText = document.getElementById('autoCostText');
+    const buyClickBtn = document.getElementById('buyClickBtn');
+    const buyAutoBtn = document.getElementById('buyAutoBtn');
 
-    const startScreen = document.getElementById('startScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const startBtn = document.getElementById('startBtn');
-    const restartBtn = document.getElementById('restartBtn');
+    // базовые значения
+    let points = 0;            // текущий баланс
+    let clickLevel = 0;
+    let clickValue = 1;        // сколько SHP за клик
+    let autoLevel = 0;
+    let autoPerSecond = 0;     // пассивный доход
 
-    let gameWidth = 0;
-    let gameHeight = 0;
+    let cps = 0;
+    let bestCps = 0;
+    let lastCpsCheckTime = Date.now();
+    let lastPointsForCps = 0;
 
-    // Овечка
-    const sheep = {
-      x: 80,
-      y: 0,
-      width: 70,
-      height: 55,
-      vy: 0,
-      onGround: false
-    };
+    const startTime = Date.now();
 
-    const gravity = 0.6;
-    const jumpForce = -11.5;
-
-    // Препятствия
-    const obstacles = [];
-
-    let baseSpeed = 4;
-    let gameSpeed = baseSpeed;
-    let spawnTimer = 0;
-    let spawnInterval = 1300;
-
-    let score = 0;
-    let bestScore = 0;
-    let isRunning = false;
-    let isGameOver = false;
-    let lastTime = 0;
-
-    // Сохранённый рекорд
-    try {
-      const saved = localStorage.getItem('sheeply_run_best');
-      if (saved) {
-        bestScore = parseInt(saved, 10) || 0;
-        bestEl.textContent = bestScore;
-      }
-    } catch (e) {}
-
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      gameWidth = rect.width;
-      gameHeight = rect.height;
-
-      // Позиция земли
-      const groundY = gameHeight * 0.8;
-      sheep.y = groundY - sheep.height;
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const s = String(totalSeconds % 60).padStart(2, "0");
+      return m + ":" + s;
     }
 
-    function resetGame() {
-      score = 0;
-      gameSpeed = baseSpeed;
-      spawnTimer = 0;
-      obstacles.length = 0;
-      isGameOver = false;
-      sheep.vy = 0;
-      sheep.onGround = true;
+    // таймер сессии
+    setInterval(() => {
+      const diff = Date.now() - startTime;
+      sessionTimeEl.textContent = formatTime(diff);
+    }, 1000);
 
-      const groundY = gameHeight * 0.8;
-      sheep.x = gameWidth * 0.16;
-      sheep.y = groundY - sheep.height;
-
-      scoreEl.textContent = score;
-      bestEl.textContent = bestScore;
+    function updatePointsDisplay() {
+      pointsValueEl.textContent = Math.floor(points);
     }
 
-    function spawnObstacle() {
-      const groundY = gameHeight * 0.8;
-      const width = 40 + Math.random() * 20;
-      const height = 30 + Math.random() * 25;
-      obstacles.push({
-        x: gameWidth + width,
-        y: groundY - height,
-        width,
-        height
-      });
+    function updateCps() {
+      const now = Date.now();
+      const dt = (now - lastCpsCheckTime) / 1000;
+      if (dt <= 0) return;
+      const diff = points - lastPointsForCps;
+      cps = diff / dt;
+      lastCpsCheckTime = now;
+      lastPointsForCps = points;
 
-      // слегка рандомизируем интервал
-      spawnInterval = 900 + Math.random() * 600;
-    }
-
-    function updateSheep() {
-      const groundY = gameHeight * 0.8;
-      sheep.vy += gravity;
-      sheep.y += sheep.vy;
-
-      if (sheep.y + sheep.height >= groundY) {
-        sheep.y = groundY - sheep.height;
-        sheep.vy = 0;
-        sheep.onGround = true;
+      cpsEl.textContent = cps.toFixed(1);
+      if (cps > bestCps) {
+        bestCps = cps;
+        bestCpsEl.textContent = bestCps.toFixed(1);
       }
     }
 
-    function updateObstacles(delta) {
-      const dx = gameSpeed * (delta / 16.67);
+    setInterval(updateCps, 500);
 
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const ob = obstacles[i];
-        ob.x -= dx;
+    function spawnFloatingLabel() {
+      const floating = document.createElement("div");
+      floating.className = "floating";
+      floating.textContent = "+" + clickValue;
+      document.body.appendChild(floating);
 
-        if (ob.x + ob.width < 0) {
-          obstacles.splice(i, 1);
-        } else {
-          // коллизия с овечкой
-          if (isCollidingSheepObstacle(sheep, ob)) {
-            endGame();
-            return;
-          }
-        }
-      }
-    }
+      const rect = logoBtn.getBoundingClientRect();
+      floating.style.left = (rect.left + rect.width / 2) + "px";
+      floating.style.top = (rect.top + rect.height / 2) + "px";
 
-    function isCollidingSheepObstacle(s, ob) {
-      // Bounding box
-      return (
-        s.x < ob.x + ob.width &&
-        s.x + s.width > ob.x &&
-        s.y < ob.y + ob.height &&
-        s.y + s.height > ob.y
-      );
-    }
-
-    function updateScore(delta) {
-      // Счёт растёт по расстоянию
-      score += (gameSpeed * delta) / 250;
-      scoreEl.textContent = Math.floor(score);
-
-      // Усложнение: увеличение скорости от счёта
-      gameSpeed = baseSpeed + Math.min(6, Math.floor(score / 80));
-    }
-
-    function update(timestamp) {
-      if (!isRunning || isGameOver) return;
-
-      if (!lastTime) lastTime = timestamp;
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-
-      spawnTimer += delta;
-
-      if (spawnTimer >= spawnInterval) {
-        spawnObstacle();
-        spawnTimer = 0;
-      }
-
-      updateSheep();
-      updateObstacles(delta);
-      updateScore(delta);
-    }
-
-    function drawBackground() {
-      ctx.clearRect(0, 0, gameWidth, gameHeight);
-
-      // Небо уже фоном, но добавим облака
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      const cloudY = gameHeight * 0.22;
-      drawCloud(80, cloudY, 60);
-      drawCloud(gameWidth * 0.5, cloudY * 0.8, 70);
-      drawCloud(gameWidth - 80, cloudY * 1.1, 55);
-      ctx.restore();
-
-      // Земля/поле
-      const groundY = gameHeight * 0.8;
-      ctx.fillStyle = '#bbf7d0';
-      ctx.fillRect(0, groundY, gameWidth, gameHeight - groundY);
-
-      // Линия земли
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, groundY - 4, gameWidth, 4);
-    }
-
-    function drawCloud(x, y, size) {
-      ctx.beginPath();
-      ctx.fillStyle = '#ffffff';
-      const r = size / 3;
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.arc(x - r, y + r / 2, r * 0.9, 0, Math.PI * 2);
-      ctx.arc(x + r, y + r / 2, r * 0.9, 0, Math.PI * 2);
-      ctx.arc(x, y + r, r * 0.8, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function drawSheep() {
-      const s = sheep;
-      ctx.save();
-      ctx.translate(s.x, s.y);
-
-      // тень под овечкой
-      const groundY = gameHeight * 0.8;
-      const shadowWidth = s.width * 0.9;
-      const shadowHeight = 10;
-      const shadowY = groundY - 4;
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.beginPath();
-      ctx.ellipse(
-        s.width / 2,
-        shadowY - s.y + shadowHeight,
-        shadowWidth / 2,
-        shadowHeight,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.fillStyle = '#16a34a';
-      ctx.fill();
-      ctx.restore();
-
-      // тело (пушистый овал)
-      ctx.save();
-      ctx.translate(s.width * 0.45, s.height * 0.5);
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#d4d4d8';
-      ctx.lineWidth = 2;
-
-      ctx.beginPath();
-      for (let i = 0; i < Math.PI * 2; i += Math.PI / 4) {
-        const dx = Math.cos(i) * (s.width * 0.3);
-        const dy = Math.sin(i) * (s.height * 0.3);
-        ctx.lineTo(dx, dy);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // голова
-      ctx.save();
-      ctx.translate(s.width * 0.1, s.height * 0.35);
-      ctx.fillStyle = '#111827';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, s.width * 0.18, s.height * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // ушки
-      ctx.beginPath();
-      ctx.ellipse(-s.width * 0.12, -s.height * 0.1, s.width * 0.06, s.height * 0.08, -0.5, 0, Math.PI * 2);
-      ctx.ellipse(s.width * 0.02, -s.height * 0.1, s.width * 0.06, s.height * 0.08, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // глаз
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(s.width * 0.02, -s.height * 0.02, s.width * 0.04, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#111827';
-      ctx.beginPath();
-      ctx.arc(s.width * 0.03, -s.height * 0.02, s.width * 0.02, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-
-      // ножки
-      ctx.fillStyle = '#111827';
-      const legWidth = s.width * 0.09;
-      const legHeight = s.height * 0.4;
-      const offsetY = s.height * 0.75;
-
-      const runPhase = Date.now() / 130;
-      const frontOffset = Math.sin(runPhase) * 3;
-      const backOffset = Math.cos(runPhase) * 3;
-
-      // задние ноги
-      ctx.fillRect(s.width * 0.35, offsetY + backOffset, legWidth, legHeight);
-      ctx.fillRect(s.width * 0.52, offsetY - backOffset, legWidth, legHeight);
-      // передние ноги
-      ctx.fillRect(s.width * 0.2, offsetY - frontOffset, legWidth, legHeight);
-      ctx.fillRect(s.width * 0.65, offsetY + frontOffset, legWidth, legHeight);
-
-      ctx.restore();
-    }
-
-    function drawObstacles() {
-      ctx.fillStyle = '#f97316'; // оранжевые коробки
-      obstacles.forEach(ob => {
-        const r = 6;
-        const x = ob.x;
-        const y = ob.y;
-        const w = ob.width;
-        const h = ob.height;
-
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.fill();
-
-        // полосы на коробке
-        ctx.fillStyle = 'rgba(0,0,0,0.08)';
-        ctx.fillRect(x + w * 0.35, y, w * 0.1, h);
-        ctx.fillStyle = '#f97316';
+      floating.addEventListener("animationend", () => {
+        floating.remove();
       });
     }
 
-    function draw() {
-      drawBackground();
-      drawObstacles();
-      drawSheep();
-    }
+    function handleClick() {
+      points += clickValue;
+      updatePointsDisplay();
+      spawnFloatingLabel();
 
-    function gameLoop(timestamp) {
-      if (!lastTime) lastTime = timestamp;
+      // анимация кнопки
+      logoBtn.classList.remove("hit");
+      void logoBtn.offsetWidth; // перезапуск анимации
+      logoBtn.classList.add("hit");
 
-      update(timestamp);
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function jump() {
-      if (!isRunning || isGameOver) return;
-      if (sheep.onGround) {
-        sheep.vy = jumpForce;
-        sheep.onGround = false;
+      if (navigator.vibrate) {
+        navigator.vibrate(10);
       }
     }
 
-    function endGame() {
-      isGameOver = true;
-      isRunning = false;
+    logoBtn.addEventListener("click", handleClick);
 
-      const final = Math.floor(score);
-      finalScoreEl.textContent = final;
-
-      if (final > bestScore) {
-        bestScore = final;
-        try {
-          localStorage.setItem('sheeply_run_best', String(bestScore));
-        } catch (e) {}
+    // пассивный доход
+    setInterval(() => {
+      if (autoPerSecond > 0) {
+        const gain = autoPerSecond / 10; // 10 раз в секунду
+        points += gain;
+        updatePointsDisplay();
       }
+    }, 100);
 
-      bestEl.textContent = bestScore;
-      finalBestEl.textContent = bestScore;
-      gameOverScreen.classList.remove('hidden');
+    // === Логика магазина ===
+    function getClickUpgradeCost() {
+      return Math.floor(50 * Math.pow(1.6, clickLevel)); // растущая цена
     }
 
-    // Управление
-    canvas.addEventListener('click', jump);
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      jump();
-    }, { passive: false });
+    function getAutoUpgradeCost() {
+      return Math.floor(80 * Math.pow(1.7, autoLevel));
+    }
 
-    startBtn.addEventListener('click', () => {
-      startScreen.classList.add('hidden');
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
+    function recalcUpgradeEffects() {
+      clickValue = 1 + clickLevel;          // каждый уровень +1 за тап
+      autoPerSecond = autoLevel * 1;        // каждый уровень +1 SHP/сек
+      clickValueText.textContent = clickValue;
+      autoRateText.textContent = autoPerSecond.toFixed(1);
+    }
 
-    restartBtn.addEventListener('click', () => {
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
+    function updateShopUI() {
+      clickLevelText.textContent = clickLevel;
+      autoLevelText.textContent = autoLevel;
+      clickCostText.textContent = getClickUpgradeCost();
+      autoCostText.textContent = getAutoUpgradeCost();
 
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-    });
+      const canBuyClick = points >= getClickUpgradeCost();
+      const canBuyAuto = points >= getAutoUpgradeCost();
+      buyClickBtn.classList.toggle("disabled", !canBuyClick);
+      buyAutoBtn.classList.toggle("disabled", !canBuyAuto);
+    }
 
-    // init
-    resizeCanvas();
-    resetGame();
-    requestAnimationFrame(gameLoop);
+    function buyClickUpgrade() {
+      const cost = getClickUpgradeCost();
+      if (points < cost) return;
+      points -= cost;
+      clickLevel++;
+      recalcUpgradeEffects();
+      updatePointsDisplay();
+      updateShopUI();
+    }
+
+    function buyAutoUpgrade() {
+      const cost = getAutoUpgradeCost();
+      if (points < cost) return;
+      points -= cost;
+      autoLevel++;
+      recalcUpgradeEffects();
+      updatePointsDisplay();
+      updateShopUI();
+    }
+
+    buyClickBtn.addEventListener("click", buyClickUpgrade);
+    buyAutoBtn.addEventListener("click", buyAutoUpgrade);
+
+    // начальное состояние
+    recalcUpgradeEffects();
+    updatePointsDisplay();
+    updateShopUI();
   </script>
 </body>
 </html>
