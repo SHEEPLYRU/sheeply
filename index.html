@@ -43,7 +43,7 @@
       gap: 12px;
       padding: 6px 14px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.7);
       backdrop-filter: blur(10px);
       font-size: 14px;
       align-items: center;
@@ -56,6 +56,11 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+    }
+
+    #bonusIndicator {
+      font-size: 12px;
+      color: #bbf7d0;
     }
 
     .overlay {
@@ -140,6 +145,8 @@
     <div id="hud">
       <span>📏 Дистанция: <strong id="distValue">0</strong> м</span>
       <span>🏆 Рекорд: <strong id="bestValue">0</strong> м</span>
+      <span>🪙 Монеты: <strong id="coinValue">0</strong></span>
+      <span id="bonusIndicator"></span>
     </div>
 
     <!-- стартовый экран -->
@@ -148,7 +155,7 @@
         <h1>SHEEP RUN</h1>
         <p>
           Милая пушистая белая овечка бежит по зелёному полю.<br>
-          Перестраивайся между дорожками и избегай деревянных заборов!
+          Уворачивайся от деревянных заборов, собирай монетки и бонусы!
         </p>
         <button class="btn" id="startBtn">Играть</button>
         <div class="hint">
@@ -163,8 +170,9 @@
         <h2>Овечка споткнулась 🐑</h2>
         <p class="stats">Дистанция: <span id="finalDist">0</span> м</p>
         <p class="stats">Рекорд: <span id="finalBest">0</span> м</p>
+        <p class="stats">Монеты: <span id="finalCoins">0</span> 🪙</p>
         <button class="btn" id="restartBtn">Играть снова</button>
-        <div class="hint">Попробуй пробежать ещё дальше!</div>
+        <div class="hint">Попробуй пробежать ещё дальше и собрать больше монет!</div>
       </div>
     </div>
   </div>
@@ -175,8 +183,11 @@
 
     const distEl = document.getElementById('distValue');
     const bestEl = document.getElementById('bestValue');
+    const coinEl = document.getElementById('coinValue');
+    const bonusIndicator = document.getElementById('bonusIndicator');
     const finalDistEl = document.getElementById('finalDist');
     const finalBestEl = document.getElementById('finalBest');
+    const finalCoinsEl = document.getElementById('finalCoins');
 
     const startScreen = document.getElementById('startScreen');
     const gameOverScreen = document.getElementById('gameOverScreen');
@@ -186,30 +197,39 @@
     let gameWidth = 0;
     let gameHeight = 0;
 
-    // три дорожки: -1, 0, 1
-    const lanes = [-1, 0, 1];
-    const laneWidthFactor = 0.23; // ширина полосы относительно экрана
+    // три дорожки: 0,1,2
+    const laneWidthFactor = 0.23;
 
     const sheep = {
-      laneIndex: 1,      // индекс в lanes (0..2) -> начнём по центру (1)
-      laneTarget: 1,
-      laneProgress: 0,   // для плавной анимации перехода
-      y: 0,
-      baseScale: 1,
+      laneIndex: 1,
+      laneTarget: 1
     };
 
     let fences = [];
+    let coins = [];
+    let bonuses = [];
 
-    let speed = 0.0045;       // скорость (мс -> прогресс к низу)
+    let speed = 0.0045;
     let distance = 0;
     let bestDistance = 0;
+    let coinsCount = 0;
+
     let isRunning = false;
     let isGameOver = false;
     let lastTime = 0;
     let spawnTimer = 0;
-    let nextSpawn = 900; // мс между препятствиями
+    let nextSpawn = 900;
 
-    // localStorage рекорд
+    // монетки и бонусы
+    let coinSpawnTimer = 0;
+    let coinSpawnInterval = 700;
+
+    let bonusActive = false;
+    let bonusTimer = 0;
+    const BONUS_DURATION = 6000; // мс
+    const BONUS_TYPE_DOUBLE = 'double';
+    let activeBonusType = null;
+
     try {
       const saved = localStorage.getItem('sheep_run_best');
       if (saved) {
@@ -228,8 +248,6 @@
 
       gameWidth = rect.width;
       gameHeight = rect.height;
-
-      sheep.y = gameHeight * 0.76;
     }
 
     function resetGame() {
@@ -238,14 +256,22 @@
       spawnTimer = 0;
       nextSpawn = 900;
       fences = [];
+      coins = [];
+      bonuses = [];
+      coinsCount = 0;
       isGameOver = false;
 
       sheep.laneIndex = 1;
       sheep.laneTarget = 1;
-      sheep.laneProgress = 0;
+
+      bonusActive = false;
+      bonusTimer = 0;
+      activeBonusType = null;
+      bonusIndicator.textContent = '';
 
       distEl.textContent = '0';
       bestEl.textContent = bestDistance;
+      coinEl.textContent = '0';
     }
 
     function laneToX(laneIndex) {
@@ -255,20 +281,32 @@
     }
 
     function spawnFence() {
-      const laneIndex = Math.floor(Math.random() * lanes.length);
-      fences.push({
-        laneIndex,
-        progress: 0 // 0 - у горизонта, 1 - у овечки
-      });
-      // немного рандома в спавне
+      const laneIndex = Math.floor(Math.random() * 3);
+      fences.push({ laneIndex, progress: 0 });
       nextSpawn = 700 + Math.random() * 600;
     }
 
+    function spawnCoin() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      coins.push({
+        laneIndex,
+        progress: 0
+      });
+    }
+
+    function spawnBonus() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      bonuses.push({
+        laneIndex,
+        progress: 0,
+        type: BONUS_TYPE_DOUBLE
+      });
+    }
+
     function updateSheep(dt) {
-      // плавный переход между полосами
       if (sheep.laneIndex !== sheep.laneTarget) {
         const dir = sheep.laneTarget > sheep.laneIndex ? 1 : -1;
-        sheep.laneIndex += dir * dt * 0.01; // скорость смещения
+        sheep.laneIndex += dir * dt * 0.01;
         if ((dir > 0 && sheep.laneIndex >= sheep.laneTarget) ||
             (dir < 0 && sheep.laneIndex <= sheep.laneTarget)) {
           sheep.laneIndex = sheep.laneTarget;
@@ -276,21 +314,26 @@
       }
     }
 
-    function updateFences(dt) {
-      const toRemove = [];
+    function updateArrayProgress(arr, dt) {
       const speedFactor = speed * dt;
-
-      for (let i = 0; i < fences.length; i++) {
-        const f = fences[i];
-        f.progress += speedFactor; // ближе к игроку
-
-        if (f.progress >= 1.1) {
-          toRemove.push(i);
+      for (let i = arr.length - 1; i >= 0; i--) {
+        arr[i].progress += speedFactor;
+        if (arr[i].progress > 1.2) {
+          arr.splice(i, 1);
         }
       }
+    }
 
-      // проверка коллизий: когда прогресс около 0.9–1.03
-      for (const f of fences) {
+    function updateFences(dt) {
+      const speedFactor = speed * dt;
+      for (let i = fences.length - 1; i >= 0; i--) {
+        const f = fences[i];
+        f.progress += speedFactor;
+        if (f.progress > 1.2) {
+          fences.splice(i, 1);
+          continue;
+        }
+
         if (f.progress > 0.85 && f.progress < 1.03) {
           const sheepLaneRounded = Math.round(sheep.laneIndex);
           if (sheepLaneRounded === f.laneIndex) {
@@ -299,19 +342,82 @@
           }
         }
       }
+    }
 
-      // удаляем старые
-      for (let i = toRemove.length - 1; i >= 0; i--) {
-        fences.splice(toRemove[i], 1);
+    function updateCoins(dt) {
+      const speedFactor = speed * dt;
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.progress += speedFactor;
+        if (c.progress > 1.2) {
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (c.progress > 0.85 && c.progress < 1.05) {
+          const sheepLaneRounded = Math.round(sheep.laneIndex);
+          if (sheepLaneRounded === c.laneIndex) {
+            coins.splice(i, 1);
+            coinsCount += 1;
+            coinEl.textContent = coinsCount;
+          }
+        }
+      }
+    }
+
+    function updateBonuses(dt) {
+      const speedFactor = speed * dt;
+      for (let i = bonuses.length - 1; i >= 0; i--) {
+        const b = bonuses[i];
+        b.progress += speedFactor;
+        if (b.progress > 1.2) {
+          bonuses.splice(i, 1);
+          continue;
+        }
+
+        if (b.progress > 0.85 && b.progress < 1.05) {
+          const sheepLaneRounded = Math.round(sheep.laneIndex);
+          if (sheepLaneRounded === b.laneIndex) {
+            bonuses.splice(i, 1);
+            activateBonus(b.type);
+          }
+        }
+      }
+
+      if (bonusActive) {
+        bonusTimer -= dt;
+        if (bonusTimer <= 0) {
+          bonusActive = false;
+          activeBonusType = null;
+          bonusIndicator.textContent = '';
+        } else {
+          const secondsLeft = Math.ceil(bonusTimer / 1000);
+          if (activeBonusType === BONUS_TYPE_DOUBLE) {
+            bonusIndicator.textContent = '🔥 Бонус x2 ' + secondsLeft + 'с';
+          }
+        }
+      }
+    }
+
+    function activateBonus(type) {
+      bonusActive = true;
+      activeBonusType = type;
+      bonusTimer = BONUS_DURATION;
+      if (navigator.vibrate) {
+        navigator.vibrate(80);
       }
     }
 
     function updateDistance(dt) {
-      distance += dt * speed * 0.3; // просто нормализация
+      const factorBase = 0.3;
+      const factor = bonusActive && activeBonusType === BONUS_TYPE_DOUBLE
+        ? factorBase * 2
+        : factorBase;
+
+      distance += dt * speed * factor;
       const distInt = Math.floor(distance);
       distEl.textContent = distInt;
 
-      // ускорение игры
       speed += dt * 0.0000008;
     }
 
@@ -323,14 +429,27 @@
       lastTime = timestamp;
 
       spawnTimer += dt;
+      coinSpawnTimer += dt;
 
       if (spawnTimer >= nextSpawn) {
         spawnFence();
         spawnTimer = 0;
+
+        // небольшой шанс заспавнить бонус при появлении забора
+        if (Math.random() < 0.15) {
+          spawnBonus();
+        }
+      }
+
+      if (coinSpawnTimer >= coinSpawnInterval) {
+        spawnCoin();
+        coinSpawnTimer = 0;
       }
 
       updateSheep(dt);
       updateFences(dt);
+      updateCoins(dt);
+      updateBonuses(dt);
       updateDistance(dt);
     }
 
@@ -351,9 +470,9 @@
       fieldGrad.addColorStop(0, '#bbf7d0');
       fieldGrad.addColorStop(1, '#16a34a');
       ctx.fillStyle = fieldGrad;
-      ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
+      ctx.fillRect(0, horizonY, gameWidth - 0, gameHeight - horizonY);
 
-      // дорога (центральная тропинка)
+      // дорога
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(gameWidth * 0.25, gameHeight);
@@ -368,7 +487,7 @@
       ctx.fill();
       ctx.restore();
 
-      // разделительные линии между полосами (условно)
+      // разделительные линии
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.3)';
       ctx.lineWidth = 1.2;
@@ -389,13 +508,27 @@
       ctx.restore();
     }
 
+    function roundedRect(x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
     function drawFence(f) {
       const horizonY = gameHeight * 0.35;
       const bottomY = gameHeight * 0.9;
 
-      // интерполируем позицию по вертикали
       const y = horizonY + (bottomY - horizonY) * f.progress;
-      const scale = 0.4 + f.progress * 0.9; // размер растёт по мере приближения
+      const scale = 0.4 + f.progress * 0.9;
 
       const baseWidth = gameWidth * 0.18;
       const baseHeight = gameHeight * 0.08;
@@ -418,12 +551,10 @@
       ctx.fill();
       ctx.restore();
 
-      // забор
       ctx.fillStyle = '#a16207';
       ctx.strokeStyle = '#78350f';
       ctx.lineWidth = 2 * scale;
 
-      // горизонтальные планки
       const plankHeight = height * 0.2;
       const gap = plankHeight * 0.5;
       for (let i = 0; i < 3; i++) {
@@ -433,7 +564,6 @@
         ctx.stroke();
       }
 
-      // вертикальные стойки
       const posts = 4;
       const postWidth = width / (posts * 2);
       ctx.fillStyle = '#b45309';
@@ -447,26 +577,121 @@
       ctx.restore();
     }
 
-    function roundedRect(x, y, w, h, r) {
-      const radius = Math.min(r, w / 2, h / 2);
+    function drawCoin(c) {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      const y = horizonY + (bottomY - horizonY) * c.progress;
+      const scale = 0.4 + c.progress * 0.9;
+
+      const radiusBase = gameWidth * 0.03;
+      const r = radiusBase * scale;
+
+      const laneX = laneToX(c.laneIndex);
+      const x = laneX;
+
+      ctx.save();
+      ctx.translate(x, y - r * 1.3);
+
+      // тень
+      ctx.save();
+      ctx.globalAlpha = 0.35;
       ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + w - radius, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-      ctx.lineTo(x + w, y + h - radius);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-      ctx.lineTo(x + radius, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
+      ctx.ellipse(0, r * 1.4, r * 1.2, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      // монета
+      const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
+      grad.addColorStop(0, '#fef9c3');
+      grad.addColorStop(0.5, '#fde047');
+      grad.addColorStop(1, '#f59e0b');
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.stroke();
+
+      // значок "S"
+      ctx.fillStyle = '#78350f';
+      ctx.font = `${r * 0.9}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('S', 0, 0.1);
+
+      ctx.restore();
+    }
+
+    function drawBonus(b) {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+      const y = horizonY + (bottomY - horizonY) * b.progress;
+      const scale = 0.4 + b.progress * 0.9;
+
+      const sizeBase = gameWidth * 0.05;
+      const size = sizeBase * scale;
+
+      const laneX = laneToX(b.laneIndex);
+      const x = laneX;
+
+      ctx.save();
+      ctx.translate(x, y - size * 1.4);
+
+      // тень
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(0, size * 1.4, size * 1.1, size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      // сияние
+      const glowGrad = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 1.2);
+      glowGrad.addColorStop(0, 'rgba(254, 249, 195, 0.9)');
+      glowGrad.addColorStop(1, 'rgba(190, 242, 100, 0)');
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2);
+      ctx.fillStyle = glowGrad;
+      ctx.fill();
+
+      // клевер
+      ctx.fillStyle = '#22c55e';
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 2;
+
+      const r = size * 0.55;
+      function leaf(angle) {
+        const dx = Math.cos(angle) * r * 0.5;
+        const dy = Math.sin(angle) * r * 0.5;
+        ctx.beginPath();
+        ctx.arc(dx, dy, r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      leaf(0);
+      leaf(Math.PI / 2);
+      leaf(Math.PI);
+      leaf(-Math.PI / 2);
+
+      // стебель
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.7);
+      ctx.quadraticCurveTo(size * 0.1, r * 1.4, size * 0.2, r * 1.8);
+      ctx.stroke();
+
+      ctx.restore();
     }
 
     function drawSheep() {
       const horizonY = gameHeight * 0.35;
       const bottomY = gameHeight * 0.9;
 
-      const progress = 1.02; // овечка всегда у игрока (внизу)
+      const progress = 1.02;
       const y = horizonY + (bottomY - horizonY) * progress;
       const scale = 0.9;
 
@@ -489,7 +714,28 @@
       ctx.fill();
       ctx.restore();
 
-      // тело (пушистое)
+      // свечение при бонусе
+      if (bonusActive && activeBonusType === BONUS_TYPE_DOUBLE) {
+        ctx.save();
+        ctx.globalAlpha = 0.45;
+        const grad = ctx.createRadialGradient(
+          bodyWidth * 0.5,
+          bodyHeight * 0.5,
+          bodyWidth * 0.2,
+          bodyWidth * 0.5,
+          bodyHeight * 0.5,
+          bodyWidth
+        );
+        grad.addColorStop(0, 'rgba(190, 242, 100, 0.9)');
+        grad.addColorStop(1, 'rgba(190, 242, 100, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(bodyWidth * 0.5, bodyHeight * 0.5, bodyWidth, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // тело
       ctx.save();
       ctx.translate(bodyWidth * 0.55, bodyHeight * 0.55);
       ctx.fillStyle = '#ffffff';
@@ -557,11 +803,21 @@
 
     function draw() {
       drawBackground();
-      // сортируем заборы по progress (от дальних к ближним)
-      const sortedFences = fences.slice().sort((a, b) => a.progress - b.progress);
-      for (const f of sortedFences) {
-        drawFence(f);
+
+      const allObjects = [];
+
+      fences.forEach(f => allObjects.push({ type: 'fence', obj: f, z: f.progress }));
+      coins.forEach(c => allObjects.push({ type: 'coin', obj: c, z: c.progress }));
+      bonuses.forEach(b => allObjects.push({ type: 'bonus', obj: b, z: b.progress }));
+
+      allObjects.sort((a, b) => a.z - b.z);
+
+      for (const item of allObjects) {
+        if (item.type === 'fence') drawFence(item.obj);
+        else if (item.type === 'coin') drawCoin(item.obj);
+        else if (item.type === 'bonus') drawBonus(item.obj);
       }
+
       drawSheep();
     }
 
@@ -588,13 +844,13 @@
 
       bestEl.textContent = bestDistance;
       finalBestEl.textContent = bestDistance;
+      finalCoinsEl.textContent = coinsCount;
       gameOverScreen.classList.remove('hidden');
     }
 
-    // управление: смена полосы
     function changeLane(dir) {
       if (!isRunning || isGameOver) return;
-      const target = sheep.laneTarget + dir;
+      const target = Math.round(sheep.laneTarget) + dir;
       if (target < 0 || target > 2) return;
       sheep.laneTarget = target;
     }
@@ -607,7 +863,6 @@
       }
     });
 
-    // свайпы
     let touchStartX = null;
     let touchStartY = null;
 
