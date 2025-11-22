@@ -2,899 +2,316 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SHEEPLY Tech Run</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Basket Boy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #0f172a, #020617);
-      overflow: hidden;
-      color: #f9fafb;
-    }
-
-    #gameWrapper {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      background: radial-gradient(circle at top, #0f172a, #022c22 40%, #022c22);
-    }
-
-    #gameCanvas {
-      display: block;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
       width: 100%;
       height: 100%;
-      touch-action: none;
+      overflow: hidden;
+      background: #111827;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #f9fafb;
     }
-
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
     #hud {
       position: absolute;
-      top: 10px;
+      top: 8px;
+      left: 0;
+      right: 0;
+      padding: 0 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #message {
+      position: absolute;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
+      background: rgba(15, 23, 42, 0.8);
       padding: 6px 14px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(16px);
       font-size: 13px;
-      align-items: center;
-      z-index: 5;
-      pointer-events: none;
-      color: #f9fafb;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
-      border: 1px solid rgba(148,163,184,0.5);
-    }
-
-    #hud span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.94), rgba(4, 7, 13, 0.98));
-      color: #f9fafb;
-    }
-
-    .overlay-inner {
-      width: 90%;
-      max-width: 420px;
-      padding: 20px 18px;
-      border-radius: 24px;
-      background:
-        radial-gradient(circle at top, rgba(74, 222, 128, 0.25), transparent 55%),
-        linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(21, 128, 61, 0.9));
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
       text-align: center;
-      border: 1px solid rgba(167, 243, 208, 0.4);
+      z-index: 2;
     }
-
-    .overlay h1,
-    .overlay h2 {
-      margin: 0 0 12px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .overlay p {
-      margin: 0 0 18px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #e5e7eb;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 22px;
-      border-radius: 999px;
-      border: none;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: #f9fafb;
-      box-shadow: 0 12px 30px rgba(22, 163, 74, 0.7);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-
-    .btn:active {
-      transform: translateY(1px) scale(0.98);
-      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.75);
-    }
-
-    .hint {
-      font-size: 12px;
-      color: #bbf7d0;
-      margin-top: 8px;
-    }
-
-    .stats {
-      font-size: 14px;
-      margin-top: 6px;
-      color: #bbf7d0;
-    }
-
-    .hidden {
-      display: none;
+    canvas {
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+      background: linear-gradient(to top, #0f172a, #1e293b);
+      touch-action: manipulation;
     }
   </style>
 </head>
 <body>
-  <div id="gameWrapper">
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="hud">
-      <span>📏 Дистанция: <strong id="distValue">0</strong> м</span>
-      <span>🏆 Рекорд: <strong id="bestValue">0</strong> м</span>
-      <span>📦 Техника: <strong id="gadgetsValue">0</strong></span>
-    </div>
-
-    <!-- стартовый экран -->
-    <div id="startScreen" class="overlay">
-      <div class="overlay-inner">
-        <h1>SHEEPLY TECH RUN</h1>
-        <p>
-          Овечка SHEEPLY бежит по зелёному полю, как в Subway Surfers.<br>
-          Собирай телефоны, ноутбуки, наушники, приставки и уворачивайся от бомб 💣.
-        </p>
-        <button class="btn" id="startBtn">Играть</button>
-        <div class="hint">
-          Свайп влево / вправо или стрелки ← → / A D — смена полосы
-        </div>
-      </div>
-    </div>
-
-    <!-- экран конца игры -->
-    <div id="gameOverScreen" class="overlay hidden">
-      <div class="overlay-inner">
-        <h2>Бомба! 💣</h2>
-        <p class="stats">Дистанция: <span id="finalDist">0</span> м</p>
-        <p class="stats">Рекорд: <span id="finalBest">0</span> м</p>
-        <p class="stats">Собрано техники: <span id="finalGadgets">0</span></p>
-        <button class="btn" id="restartBtn">Играть снова</button>
-        <div class="hint">
-          В начале игра медленная, дальше — сложнее. Смысл: кто пройдёт дальше всех.
-        </div>
-      </div>
-    </div>
+<div id="game-container">
+  <div id="hud">
+    <div>Очки: <span id="score">0</span></div>
+    <div>Попытки: <span id="lives">5</span></div>
   </div>
+  <div id="message">Тапни, чтобы бросить мяч</div>
+  <canvas id="game"></canvas>
+</div>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const livesEl = document.getElementById("lives");
+  const messageEl = document.getElementById("message");
 
-    const distEl = document.getElementById('distValue');
-    const bestEl = document.getElementById('bestValue');
-    const gadgetsEl = document.getElementById('gadgetsValue');
-    const finalDistEl = document.getElementById('finalDist');
-    const finalBestEl = document.getElementById('finalBest');
-    const finalGadgetsEl = document.getElementById('finalGadgets');
+  // Размеры канваса завязаны на высоту экрана
+  function resizeCanvas() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const size = Math.min(vw * 0.95, vh * 0.8);
+    canvas.width = size;
+    canvas.height = size * 1.4; // чуть более вытянутый по вертикали
+  }
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
 
-    const startScreen = document.getElementById('startScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const startBtn = document.getElementById('startBtn');
-    const restartBtn = document.getElementById('restartBtn');
+  // Игровые параметры
+  let score = 0;
+  let lives = 5;
+  let gameOver = false;
 
-    let gameWidth = 0;
-    let gameHeight = 0;
+  const gravity = 0.45;
+  const boy = {
+    x: 80,
+    y: () => canvas.height - 120,
+    bodyHeight: 70,
+    bodyWidth: 30
+  };
 
-    // три дорожки: 0,1,2
-    const laneWidthFactor = 0.23;
+  const hoop = {
+    x: () => canvas.width - 110,
+    y: () => canvas.height * 0.45,
+    width: 60,
+    rimThickness: 6
+  };
 
-    const sheep = {
-      laneIndex: 1,
-      laneTarget: 1
-    };
-
-    let bombs = [];
-    let gadgets = [];
-
-    // скорость: старт медленный, потом растёт
-    let baseSpeed = 0.0011;     // стартовая скорость (медленнее)
-    let maxSpeed = 0.0033;      // максимальная скорость (в разы быстрее)
-    let speed = baseSpeed;
-
-    // дистанция / техника
-    let distance = 0;
-    let bestDistance = 0;
-    let gadgetsCount = 0;
-
-    let isRunning = false;
-    let isGameOver = false;
-    let lastTime = 0;
-
-    // спавн бомб
-    let bombSpawnTimer = 0;
-    let baseBombInterval = 1200;     // мс
-    let minBombInterval = 550;       // минимум при максимальной сложности
-    let currentBombInterval = baseBombInterval;
-
-    // спавн техники
-    let gadgetSpawnTimer = 0;
-    let baseGadgetInterval = 750;
-    let minGadgetInterval = 350;
-    let currentGadgetInterval = baseGadgetInterval;
-
-    try {
-      const saved = localStorage.getItem('sheep_tech_run_best');
-      if (saved) {
-        bestDistance = parseInt(saved, 10) || 0;
-        bestEl.textContent = bestDistance;
-      }
-    } catch (e) {}
-
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      gameWidth = rect.width;
-      gameHeight = rect.height;
+  const ball = {
+    radius: 12,
+    reset() {
+      this.x = boy.x + 30;
+      this.y = boy.y() - 40;
+      this.vx = 0;
+      this.vy = 0;
+      this.inAir = false;
+      this.scoredThisShot = false;
     }
+  };
+  ball.reset();
 
-    function resetGame() {
-      distance = 0;
-      speed = baseSpeed;
-      bombs = [];
-      gadgets = [];
-      gadgetsCount = 0;
-      isGameOver = false;
+  // Вычисление силы броска (просто по очередности кликов)
+  let powerPhase = 0;
+  let lastShotTime = 0;
 
-      bombSpawnTimer = 0;
-      gadgetSpawnTimer = 0;
-      currentBombInterval = baseBombInterval;
-      currentGadgetInterval = baseGadgetInterval;
+  function shoot() {
+    if (ball.inAir || gameOver) return;
 
-      sheep.laneIndex = 1;
-      sheep.laneTarget = 1;
+    const now = performance.now();
+    if (now - lastShotTime < 250) return; // анти-спам
+    lastShotTime = now;
 
-      distEl.textContent = '0';
-      bestEl.textContent = bestDistance;
-      gadgetsEl.textContent = '0';
-    }
+    // растущая сила броска по фазам
+    powerPhase = (powerPhase + 1) % 3;
+    const baseSpeed = 15;
+    const powerMultiplier = 0.7 + powerPhase * 0.3; // 0.7, 1.0, 1.3
 
-    function laneToX(laneIndex) {
-      const laneWidth = gameWidth * laneWidthFactor;
-      const center = gameWidth / 2;
-      return center + (laneIndex - 1) * laneWidth;
-    }
+    const dirX = hoop.x() - ball.x;
+    const dirY = hoop.y() - ball.y;
+    const distance = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+    const speed = baseSpeed * powerMultiplier;
 
-    function spawnBomb() {
-      const laneIndex = Math.floor(Math.random() * 3);
-      bombs.push({ laneIndex, progress: 0 });
-    }
+    ball.vx = (dirX / distance) * speed;
+    // немного выше центра корзины — поправка на гравитацию
+    ball.vy = (dirY / distance) * speed - 3.5;
+    ball.inAir = true;
+    ball.scoredThisShot = false;
 
-    function spawnGadget() {
-      const laneIndex = Math.floor(Math.random() * 3);
-      const gadgetTypes = ['phone', 'laptop', 'headphones', 'console'];
-      const type = gadgetTypes[Math.floor(Math.random() * gadgetTypes.length)];
-      gadgets.push({
-        laneIndex,
-        progress: 0,
-        type
-      });
-    }
+    messageEl.textContent = "Попробуй попасть в кольцо!";
+  }
 
-    // усложнение: чем дальше, тем быстрее и чаще спавн
-    function updateDifficulty() {
-      const dClamped = Math.min(distance, 800); // после 800 м сложность почти предел
-      const t = dClamped / 800;                 // 0..1
+  canvas.addEventListener("click", shoot);
+  canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    shoot();
+  }, { passive: false });
 
-      speed = baseSpeed + (maxSpeed - baseSpeed) * t;
+  // Рисование
+  function drawBoy() {
+    const x = boy.x;
+    const y = boy.y();
 
-      currentBombInterval =
-        baseBombInterval - (baseBombInterval - minBombInterval) * t;
+    // Ноги
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 12, y + 35);
+    ctx.moveTo(x + 20, y);
+    ctx.lineTo(x + 32, y + 35);
+    ctx.stroke();
 
-      currentGadgetInterval =
-        baseGadgetInterval - (baseGadgetInterval - minGadgetInterval) * t;
-    }
+    // Тело
+    ctx.fillStyle = "#3b82f6";
+    ctx.fillRect(x - 5, y - boy.bodyHeight, boy.bodyWidth, boy.bodyHeight);
 
-    function updateSheep(dt) {
-      if (sheep.laneIndex !== sheep.laneTarget) {
-        const dir = sheep.laneTarget > sheep.laneIndex ? 1 : -1;
-        sheep.laneIndex += dir * dt * 0.006; // плавное смещение
-        if ((dir > 0 && sheep.laneIndex >= sheep.laneTarget) ||
-            (dir < 0 && sheep.laneIndex <= sheep.laneTarget)) {
-          sheep.laneIndex = sheep.laneTarget;
-        }
-      }
-    }
+    // Руки
+    ctx.beginPath();
+    ctx.moveTo(x + 10, y - 40);
+    ctx.lineTo(ball.x, ball.y);
+    ctx.stroke();
 
-    function updateBombs(dt) {
-      const speedFactor = speed * dt;
-      for (let i = bombs.length - 1; i >= 0; i--) {
-        const b = bombs[i];
-        b.progress += speedFactor;
-        if (b.progress > 1.3) {
-          bombs.splice(i, 1);
-          continue;
-        }
+    // Голова
+    ctx.beginPath();
+    ctx.fillStyle = "#f97316";
+    ctx.arc(x + 10, y - boy.bodyHeight - 15, 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-        // столкновение с овечкой
-        if (b.progress > 0.85 && b.progress < 1.03) {
-          const sheepLaneRounded = Math.round(sheep.laneIndex);
-          if (sheepLaneRounded === b.laneIndex) {
-            if (navigator.vibrate) navigator.vibrate(100);
-            endGame();
-            return;
-          }
-        }
-      }
-    }
+  function drawHoop() {
+    const x = hoop.x();
+    const y = hoop.y();
 
-    function updateGadgets(dt) {
-      const speedFactor = speed * dt;
-      for (let i = gadgets.length - 1; i >= 0; i--) {
-        const g = gadgets[i];
-        g.progress += speedFactor;
-        if (g.progress > 1.3) {
-          gadgets.splice(i, 1);
-          continue;
-        }
+    // Стойка
+    ctx.fillStyle = "#78350f";
+    ctx.fillRect(x + hoop.width - 10, y - 40, 10, 130);
 
-        if (g.progress > 0.85 && g.progress < 1.05) {
-          const sheepLaneRounded = Math.round(sheep.laneIndex);
-          if (sheepLaneRounded === g.laneIndex) {
-            gadgets.splice(i, 1);
-            gadgetsCount += 1;
-            gadgetsEl.textContent = gadgetsCount;
-            if (navigator.vibrate) navigator.vibrate(10);
-          }
-        }
-      }
-    }
+    // Щит
+    ctx.fillStyle = "#e5e7eb";
+    ctx.fillRect(x + hoop.width - 60, y - 40, 60, 40);
 
-    function updateDistance(dt) {
-      const factor = 0.3;
-      distance += dt * speed * factor;
-      const distInt = Math.floor(distance);
-      distEl.textContent = distInt;
+    // Кольцо
+    ctx.strokeStyle = "#f97316";
+    ctx.lineWidth = hoop.rimThickness;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + hoop.width, y);
+    ctx.stroke();
 
-      updateDifficulty();
-    }
-
-    function update(timestamp) {
-      if (!isRunning || isGameOver) return;
-
-      if (!lastTime) lastTime = timestamp;
-      const dt = timestamp - lastTime;
-      lastTime = timestamp;
-
-      bombSpawnTimer += dt;
-      gadgetSpawnTimer += dt;
-
-      if (bombSpawnTimer >= currentBombInterval) {
-        spawnBomb();
-        bombSpawnTimer = 0;
-      }
-
-      if (gadgetSpawnTimer >= currentGadgetInterval) {
-        spawnGadget();
-        gadgetSpawnTimer = 0;
-      }
-
-      updateSheep(dt);
-      updateBombs(dt);
-      updateGadgets(dt);
-      updateDistance(dt);
-    }
-
-    // фон: небо + поле
-    function drawBackground() {
-      ctx.clearRect(0, 0, gameWidth, gameHeight);
-
-      const horizonY = gameHeight * 0.35;
-
-      // небо
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-      skyGrad.addColorStop(0, '#0ea5e9');
-      skyGrad.addColorStop(0.4, '#38bdf8');
-      skyGrad.addColorStop(1, '#a5f3fc');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, gameWidth, horizonY);
-
-      // лёгкие облака
-      drawCloud(gameWidth * 0.25, horizonY * 0.35, gameWidth * 0.16);
-      drawCloud(gameWidth * 0.7, horizonY * 0.23, gameWidth * 0.2);
-
-      // поле
-      const fieldGrad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
-      fieldGrad.addColorStop(0, '#bbf7d0');
-      fieldGrad.addColorStop(0.4, '#4ade80');
-      fieldGrad.addColorStop(1, '#166534');
-      ctx.fillStyle = fieldGrad;
-      ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
-
-      // дорожка
-      ctx.save();
+    // Сетка (просто линии)
+    ctx.strokeStyle = "rgba(248, 250, 252, 0.4)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const t = i / 4;
+      const sx = x + hoop.width * t;
       ctx.beginPath();
-      ctx.moveTo(gameWidth * 0.22, gameHeight);
-      ctx.lineTo(gameWidth * 0.78, gameHeight);
-      ctx.lineTo(gameWidth * 0.6, horizonY);
-      ctx.lineTo(gameWidth * 0.4, horizonY);
-      ctx.closePath();
-      const pathGrad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
-      pathGrad.addColorStop(0, '#bbf7d0');
-      pathGrad.addColorStop(0.4, '#86efac');
-      pathGrad.addColorStop(1, '#16a34a');
-      ctx.fillStyle = pathGrad;
-      ctx.fill();
-
-      // разделительные линии
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([7, 10]);
-      const horizonCenterX = gameWidth / 2;
-      const bottomLeftX = gameWidth * 0.3;
-      const bottomRightX = gameWidth * 0.7;
-
-      ctx.beginPath();
-      ctx.moveTo(horizonCenterX, horizonY);
-      ctx.lineTo(bottomLeftX, gameHeight);
+      ctx.moveTo(sx, y);
+      ctx.lineTo(sx, y + 30);
       ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(horizonCenterX, horizonY);
-      ctx.lineTo(bottomRightX, gameHeight);
-      ctx.stroke();
-      ctx.restore();
     }
+  }
 
-    function drawCloud(x, y, size) {
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = '#f9fafb';
-      const r = size / 4;
-      ctx.beginPath();
-      ctx.arc(x - r, y, r * 1.1, 0, Math.PI * 2);
-      ctx.arc(x, y - r * 0.4, r * 1.4, 0, Math.PI * 2);
-      ctx.arc(x + r, y, r * 1.2, 0, Math.PI * 2);
-      ctx.arc(x, y + r * 0.3, r * 1.0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+  function drawBall() {
+    ctx.beginPath();
+    ctx.fillStyle = "#f97316";
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#ea580c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius * 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function drawCourt() {
+    // пол
+    ctx.fillStyle = "#0b1120";
+    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+
+    // центральная линия
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 60);
+    ctx.lineTo(canvas.width, canvas.height - 60);
+    ctx.stroke();
+  }
+
+  // Детекция попадания
+  function checkScore() {
+    const rimX = hoop.x();
+    const rimY = hoop.y();
+    const left = rimX;
+    const right = rimX + hoop.width;
+    const top = rimY - 4;
+    const bottom = rimY + 10;
+
+    const wasAbove = ball.y - ball.radius < top;
+    const nowInsideHoriz = ball.x > left && ball.x < right;
+    const nowBelow = ball.y - ball.radius > top;
+
+    if (ball.inAir && !ball.scoredThisShot && wasAbove && nowInsideHoriz && nowBelow) {
+      ball.scoredThisShot = true;
+      score++;
+      scoreEl.textContent = score;
+      messageEl.textContent = "ПОПАЛ! 🔥";
+
+      // пример: здесь можно отправить результат в Telegram (если используется Game API)
+      // if (window.TelegramGameProxy) { TelegramGameProxy.shareScore(score); }
     }
+  }
 
-    function roundedRect(x, y, w, h, r) {
-      const radius = Math.min(r, w / 2, h / 2);
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + w - radius, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-      ctx.lineTo(x + w, y + h - radius);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-      ctx.lineTo(x + radius, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-    }
+  // Основной цикл
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawCourt();
+    drawHoop();
+    drawBoy();
+    drawBall();
 
-    function drawBomb(b) {
-      const horizonY = gameHeight * 0.35;
-      const bottomY = gameHeight * 0.9;
+    if (ball.inAir) {
+      ball.vy += gravity;
+      ball.x += ball.vx;
+      ball.y += ball.vy;
 
-      const y = horizonY + (bottomY - horizonY) * b.progress;
-      const scale = 0.5 + b.progress * 0.9;
+      checkScore();
 
-      const laneX = laneToX(b.laneIndex);
-      const x = laneX;
+      // приземление / вылет за экран
+      if (ball.y - ball.radius > canvas.height || ball.x - ball.radius > canvas.width + 50) {
+        ball.inAir = false;
+        lives--;
+        livesEl.textContent = lives;
 
-      const baseRadius = gameWidth * 0.035;
-      const r = baseRadius * scale;
-
-      ctx.save();
-      ctx.translate(x, y - r * 1.4);
-
-      // тень
-      ctx.save();
-      ctx.globalAlpha = 0.4;
-      ctx.beginPath();
-      ctx.ellipse(0, r * 1.5, r * 1.4, r * 0.6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#14532d';
-      ctx.fill();
-      ctx.restore();
-
-      // тело бомбы
-      const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
-      grad.addColorStop(0, '#4b5563');
-      grad.addColorStop(1, '#020617');
-      ctx.beginPath();
-      ctx.arc(0, 0, r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // фитиль
-      ctx.strokeStyle = '#f97316';
-      ctx.lineWidth = Math.max(2, r * 0.2);
-      ctx.beginPath();
-      ctx.moveTo(0, -r * 0.6);
-      ctx.quadraticCurveTo(r * 0.3, -r * 1.3, 0, -r * 1.9);
-      ctx.stroke();
-
-      // искра
-      const t = Date.now() / 120;
-      const sparkR = r * 0.4;
-      const sx = 0 + Math.cos(t) * sparkR * 0.3;
-      const sy = -r * 1.9 + Math.sin(t) * sparkR * 0.3;
-      ctx.beginPath();
-      ctx.arc(sx, sy, sparkR * 0.4, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    function drawGadget(g) {
-      const horizonY = gameHeight * 0.35;
-      const bottomY = gameHeight * 0.9;
-
-      const y = horizonY + (bottomY - horizonY) * g.progress;
-      const scale = 0.5 + g.progress * 0.9;
-
-      const laneX = laneToX(g.laneIndex);
-      const x = laneX;
-
-      ctx.save();
-      ctx.translate(x, y);
-
-      // тень
-      const size = gameWidth * 0.04 * scale;
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      ctx.beginPath();
-      ctx.ellipse(0, size * 1.3, size * 1.3, size * 0.6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#14532d';
-      ctx.fill();
-      ctx.restore();
-
-      if (g.type === 'phone') {
-        const w = size * 1.4;
-        const h = size * 2.2;
-        ctx.save();
-        ctx.translate(-w/2, -h*1.4);
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#0ea5e9');
-        grad.addColorStop(1, '#22c55e');
-        // корпус
-        roundedRect(0, 0, w, h, w * 0.25);
-        ctx.fillStyle = '#111827';
-        ctx.fill();
-        // экран
-        ctx.save();
-        ctx.translate(w * 0.08, h * 0.07);
-        roundedRect(0, 0, w * 0.84, h * 0.8, w * 0.18);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.restore();
-        // кнопка
-        ctx.beginPath();
-        ctx.arc(w * 0.5, h * 0.88, w * 0.09, 0, Math.PI * 2);
-        ctx.fillStyle = '#0f172a';
-        ctx.fill();
-        ctx.restore();
-      } else if (g.type === 'laptop') {
-        const w = size * 2.4;
-        const h = size * 1.6;
-        ctx.save();
-        ctx.translate(-w / 2, -h * 1.2);
-        // крышка
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#e5e7eb');
-        grad.addColorStop(1, '#cbd5f5');
-        roundedRect(0, 0, w, h, 6);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        // экран
-        ctx.save();
-        ctx.translate(w * 0.08, h * 0.12);
-        roundedRect(0, 0, w * 0.84, h * 0.7, 4);
-        ctx.fillStyle = '#0f172a';
-        ctx.fill();
-        ctx.restore();
-        // клавиатура/основание
-        ctx.translate(-w * 0.05, h * 0.9);
-        roundedRect(0, 0, w * 1.1, h * 0.4, 4);
-        ctx.fillStyle = '#9ca3af';
-        ctx.fill();
-        ctx.restore();
-      } else if (g.type === 'headphones') {
-        const r = size * 1.4;
-        ctx.save();
-        ctx.translate(0, -r * 1.3);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#e11d48';
-        // дуга
-        ctx.beginPath();
-        ctx.arc(0, 0, r, Math.PI * 0.25, Math.PI * 0.75);
-        ctx.stroke();
-        // чашки
-        ctx.fillStyle = '#f9fafb';
-        ctx.beginPath();
-        ctx.arc(-r * 0.7, r * 0.3, r * 0.4, 0, Math.PI * 2);
-        ctx.arc(r * 0.7, r * 0.3, r * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#111827';
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        // приставка / геймпад
-        const w = size * 2.2;
-        const h = size * 1.3;
-        ctx.save();
-        ctx.translate(-w/2, -h*1.3);
-        const grad = ctx.createLinearGradient(0, 0, w, h);
-        grad.addColorStop(0, '#0f172a');
-        grad.addColorStop(1, '#1f2937');
-        roundedRect(0, 0, w, h, h * 0.7);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.strokeStyle = '#4b5563';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // стики
-        ctx.beginPath();
-        ctx.arc(w * 0.35, h * 0.45, h * 0.16, 0, Math.PI * 2);
-        ctx.arc(w * 0.65, h * 0.45, h * 0.16, 0, Math.PI * 2);
-        ctx.fillStyle = '#111827';
-        ctx.fill();
-        // крестик
-        ctx.beginPath();
-        ctx.rect(w * 0.18, h * 0.3, h * 0.08, h * 0.3);
-        ctx.rect(w * 0.15, h * 0.38, h * 0.3, h * 0.08);
-        ctx.fill();
-        // кнопки
-        ctx.beginPath();
-        ctx.arc(w * 0.8, h * 0.35, h * 0.06, 0, Math.PI * 2);
-        ctx.arc(w * 0.86, h * 0.45, h * 0.06, 0, Math.PI * 2);
-        ctx.arc(w * 0.8, h * 0.55, h * 0.06, 0, Math.PI * 2);
-        ctx.arc(w * 0.74, h * 0.45, h * 0.06, 0, Math.PI * 2);
-        ctx.fillStyle = '#f97316';
-        ctx.fill();
-        ctx.restore();
-      }
-
-      ctx.restore();
-    }
-
-    // овечка
-    function drawSheep() {
-      const horizonY = gameHeight * 0.35;
-      const bottomY = gameHeight * 0.9;
-
-      const progress = 1.02;
-      const y = horizonY + (bottomY - horizonY) * progress;
-      const scale = 1;
-
-      const laneX = laneToX(sheep.laneIndex);
-      const bodyWidth = gameWidth * 0.18 * scale;
-      const bodyHeight = gameHeight * 0.1 * scale;
-
-      const x = laneX - bodyWidth / 2;
-      const baseY = y - bodyHeight;
-
-      ctx.save();
-      ctx.translate(x, baseY);
-
-      // тень
-      ctx.save();
-      ctx.globalAlpha = 0.4;
-      ctx.beginPath();
-      ctx.ellipse(bodyWidth / 2, bodyHeight * 1.15, bodyWidth * 0.7, bodyHeight * 0.5, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#14532d';
-      ctx.fill();
-      ctx.restore();
-
-      // тело (несколько слоёв "шерсти")
-      ctx.save();
-      ctx.translate(bodyWidth * 0.55, bodyHeight * 0.55);
-      const fluffLayers = [
-        { rX: bodyWidth * 0.55, rY: bodyHeight * 0.7, color: '#e5e7eb' },
-        { rX: bodyWidth * 0.5,  rY: bodyHeight * 0.65, color: '#f9fafb' },
-        { rX: bodyWidth * 0.45, rY: bodyHeight * 0.6,  color: '#ffffff' }
-      ];
-      fluffLayers.forEach(layer => {
-        ctx.beginPath();
-        const blobs = 12;
-        for (let i = 0; i < blobs; i++) {
-          const angle = (Math.PI * 2 * i) / blobs;
-          const wobble = Math.sin(Date.now()/250 + i) * 1.5;
-          const dx = Math.cos(angle) * (layer.rX + wobble) * 0.7;
-          const dy = Math.sin(angle) * (layer.rY + wobble) * 0.7;
-          ctx.lineTo(dx, dy);
+        if (lives <= 0) {
+          gameOver = true;
+          messageEl.textContent = `Игра окончена! Очки: ${score}. Обнови страницу для повторной игры.`;
+        } else {
+          messageEl.textContent = "Промах! Осталось попыток: " + lives;
+          ball.reset();
         }
-        ctx.closePath();
-        ctx.fillStyle = layer.color;
-        ctx.fill();
-      });
-      ctx.restore();
-
-      // голова
-      ctx.save();
-      ctx.translate(bodyWidth * 0.12, bodyHeight * 0.35);
-      const headGrad = ctx.createLinearGradient(-bodyWidth * 0.2, -bodyHeight * 0.3, bodyWidth * 0.2, bodyHeight * 0.3);
-      headGrad.addColorStop(0, '#020617');
-      headGrad.addColorStop(1, '#1f2937');
-      ctx.fillStyle = headGrad;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, bodyWidth * 0.22, bodyHeight * 0.38, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // уши
-      ctx.beginPath();
-      ctx.ellipse(-bodyWidth * 0.19, -bodyHeight * 0.12, bodyWidth * 0.09, bodyHeight * 0.16, -0.5, 0, Math.PI * 2);
-      ctx.ellipse(bodyWidth * 0.05, -bodyHeight * 0.12, bodyWidth * 0.09, bodyHeight * 0.16, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // мордочка
-      ctx.fillStyle = '#f9fafb';
-      ctx.beginPath();
-      ctx.ellipse(0, -bodyHeight * 0.02, bodyWidth * 0.16, bodyHeight * 0.2, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // глаз
-      ctx.save();
-      ctx.translate(bodyWidth * 0.03, -bodyHeight * 0.06);
-      ctx.beginPath();
-      ctx.arc(0, 0, bodyWidth * 0.05, 0, Math.PI * 2);
-      ctx.fillStyle = '#0f172a';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(-bodyWidth * 0.015, -bodyHeight * 0.015, bodyWidth * 0.02, 0, Math.PI * 2);
-      ctx.fillStyle = '#f9fafb';
-      ctx.fill();
-      ctx.restore();
-
-      // нос
-      ctx.fillStyle = '#111827';
-      ctx.beginPath();
-      ctx.arc(0, bodyHeight * 0.1, bodyWidth * 0.025, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-
-      // ножки
-      ctx.fillStyle = '#111827';
-      const legWidth = bodyWidth * 0.12;
-      const legHeight = bodyHeight * 0.75;
-      const offsetY = bodyHeight * 0.95;
-
-      const runPhase = Date.now() / 140;
-      const frontOffset = Math.sin(runPhase) * 3;
-      const backOffset = Math.cos(runPhase) * 3;
-
-      ctx.fillRect(bodyWidth * 0.35, offsetY + backOffset, legWidth, legHeight);
-      ctx.fillRect(bodyWidth * 0.55, offsetY - backOffset, legWidth, legHeight);
-      ctx.fillRect(bodyWidth * 0.15, offsetY - frontOffset, legWidth, legHeight);
-      ctx.fillRect(bodyWidth * 0.75, offsetY + frontOffset, legWidth, legHeight);
-
-      ctx.restore();
-    }
-
-    function draw() {
-      drawBackground();
-
-      const allObjects = [];
-      bombs.forEach(b => allObjects.push({ type: 'bomb', obj: b, z: b.progress }));
-      gadgets.forEach(g => allObjects.push({ type: 'gadget', obj: g, z: g.progress }));
-
-      allObjects.sort((a, b) => a.z - b.z);
-
-      for (const item of allObjects) {
-        if (item.type === 'bomb') drawBomb(item.obj);
-        else if (item.type === 'gadget') drawGadget(item.obj);
       }
-
-      drawSheep();
     }
 
-    function gameLoop(timestamp) {
-      update(timestamp);
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
+    requestAnimationFrame(update);
+  }
 
-    function endGame() {
-      if (isGameOver) return;
-      isGameOver = true;
-      isRunning = false;
+  // Старт
+  ball.reset();
+  update();
 
-      const distInt = Math.floor(distance);
-      finalDistEl.textContent = distInt;
-
-      if (distInt > bestDistance) {
-        bestDistance = distInt;
-        try {
-          localStorage.setItem('sheep_tech_run_best', String(bestDistance));
-        } catch (e) {}
-      }
-
-      bestEl.textContent = bestDistance;
-      finalBestEl.textContent = bestDistance;
-      finalGadgetsEl.textContent = gadgetsCount;
-      gameOverScreen.classList.remove('hidden');
-    }
-
-    function changeLane(dir) {
-      if (!isRunning || isGameOver) return;
-      const target = Math.round(sheep.laneTarget) + dir;
-      if (target < 0 || target > 2) return;
-      sheep.laneTarget = target;
-    }
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        changeLane(-1);
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        changeLane(1);
-      }
-    });
-
-    let touchStartX = null;
-    let touchStartY = null;
-
-    canvas.addEventListener('touchstart', (e) => {
-      const t = e.touches[0];
-      touchStartX = t.clientX;
-      touchStartY = t.clientY;
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', (e) => {
-      if (touchStartX === null) return;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - touchStartX;
-      const dy = t.clientY - touchStartY;
-
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20) {
-        if (dx < 0) changeLane(-1);
-        else changeLane(1);
-      }
-      touchStartX = touchStartY = null;
-    }, { passive: true });
-
-    startBtn.addEventListener('click', () => {
-      startScreen.classList.add('hidden');
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
-
-    restartBtn.addEventListener('click', () => {
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
-
-    window.addEventListener('resize', resizeCanvas);
-
-    // init
-    resizeCanvas();
-    resetGame();
-    requestAnimationFrame(gameLoop);
-  </script>
+  // Для Telegram WebApp можно попытаться применить тему
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.expand();
+    const bg = Telegram.WebApp.backgroundColor || "#111827";
+    document.body.style.background = bg;
+  }
+</script>
 </body>
 </html>
