@@ -2,316 +2,1291 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Basket Boy</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <title>SHEEPLY Tech Run</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #111827;
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      overflow: hidden;
       color: #f9fafb;
     }
-    #game-container {
+
+    #gameWrapper {
       position: relative;
-      width: 100vw;
+      width: 100%;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #0f172a, #022c22 40%, #022c22);
     }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
     #hud {
       position: absolute;
-      top: 8px;
-      left: 0;
-      right: 0;
-      padding: 0 12px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      z-index: 2;
-      pointer-events: none;
-    }
-    #message {
-      position: absolute;
-      bottom: 16px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.8);
+      display: flex;
+      gap: 10px;
       padding: 6px 14px;
       border-radius: 999px;
-      font-size: 13px;
-      text-align: center;
-      z-index: 2;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      font-size: 12px;
+      align-items: center;
+      z-index: 5;
+      pointer-events: none;
+      color: #f9fafb;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+      border: 1px solid rgba(148,163,184,0.5);
     }
-    canvas {
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
-      background: linear-gradient(to top, #0f172a, #1e293b);
-      touch-action: manipulation;
+
+    #hud span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    #bonusIndicator {
+      color: #bbf7d0;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.94), rgba(4, 7, 13, 0.98));
+      color: #f9fafb;
+    }
+
+    .overlay-inner {
+      width: 90%;
+      max-width: 420px;
+      padding: 20px 18px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at top, rgba(74, 222, 128, 0.25), transparent 55%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(21, 128, 61, 0.9));
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+      text-align: center;
+      border: 1px solid rgba(167, 243, 208, 0.4);
+    }
+
+    .overlay h1,
+    .overlay h2 {
+      margin: 0 0 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .overlay p {
+      margin: 0 0 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e5e7eb;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #f9fafb;
+      box-shadow: 0 12px 30px rgba(22, 163, 74, 0.7);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.75);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #bbf7d0;
+      margin-top: 8px;
+    }
+
+    .stats {
+      font-size: 14px;
+      margin-top: 6px;
+      color: #bbf7d0;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-<div id="game-container">
-  <div id="hud">
-    <div>Очки: <span id="score">0</span></div>
-    <div>Попытки: <span id="lives">5</span></div>
+  <div id="gameWrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+      <span>📏 Дистанция: <strong id="distValue">0</strong> м</span>
+      <span>🏆 Рекорд: <strong id="bestValue">0</strong> м</span>
+      <span>📦 Техника: <strong id="gadgetsValue">0</strong></span>
+      <span>🔥 Уровень: <strong id="levelValue">1</strong></span>
+      <span id="bonusIndicator"></span>
+    </div>
+
+    <!-- стартовый экран -->
+    <div id="startScreen" class="overlay">
+      <div class="overlay-inner">
+        <h1>SHEEPLY TECH RUN</h1>
+        <p>
+          Овечка SHEEPLY бежит по трём дорожкам, как в Subway Surfers.<br>
+          Собирай 💻 ноутбуки, 📱 телефоны и 🔊 колонки.<br>
+          Уворачивайся от бомб 💣 — врезался, на экране взрыв.
+        </p>
+        <button class="btn" id="startBtn">Играть</button>
+        <div class="hint">
+          Свайп влево / вправо или стрелки ← → / A D — смена полосы
+        </div>
+      </div>
+    </div>
+
+    <!-- экран конца игры -->
+    <div id="gameOverScreen" class="overlay hidden">
+      <div class="overlay-inner">
+        <h2>Бум! 💣</h2>
+        <p class="stats">Дистанция: <span id="finalDist">0</span> м</p>
+        <p class="stats">Рекорд: <span id="finalBest">0</span> м</p>
+        <p class="stats">Собрано техники: <span id="finalGadgets">0</span></p>
+        <button class="btn" id="restartBtn">Играть снова</button>
+        <div class="hint">
+          В начале медленно, дальше сложнее. Смысл: кто дальше всех и кто больше техники соберёт.
+        </div>
+      </div>
+    </div>
   </div>
-  <div id="message">Тапни, чтобы бросить мяч</div>
-  <canvas id="game"></canvas>
-</div>
 
-<script>
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
-  const scoreEl = document.getElementById("score");
-  const livesEl = document.getElementById("lives");
-  const messageEl = document.getElementById("message");
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-  // Размеры канваса завязаны на высоту экрана
-  function resizeCanvas() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const size = Math.min(vw * 0.95, vh * 0.8);
-    canvas.width = size;
-    canvas.height = size * 1.4; // чуть более вытянутый по вертикали
-  }
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
+    const distEl = document.getElementById('distValue');
+    const bestEl = document.getElementById('bestValue');
+    const gadgetsEl = document.getElementById('gadgetsValue');
+    const levelEl = document.getElementById('levelValue');
+    const bonusIndicator = document.getElementById('bonusIndicator');
+    const finalDistEl = document.getElementById('finalDist');
+    const finalBestEl = document.getElementById('finalBest');
+    const finalGadgetsEl = document.getElementById('finalGadgets');
 
-  // Игровые параметры
-  let score = 0;
-  let lives = 5;
-  let gameOver = false;
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
 
-  const gravity = 0.45;
-  const boy = {
-    x: 80,
-    y: () => canvas.height - 120,
-    bodyHeight: 70,
-    bodyWidth: 30
-  };
+    let gameWidth = 0;
+    let gameHeight = 0;
 
-  const hoop = {
-    x: () => canvas.width - 110,
-    y: () => canvas.height * 0.45,
-    width: 60,
-    rimThickness: 6
-  };
+    // три дорожки: 0,1,2
+    const laneWidthFactor = 0.23;
 
-  const ball = {
-    radius: 12,
-    reset() {
-      this.x = boy.x + 30;
-      this.y = boy.y() - 40;
-      this.vx = 0;
-      this.vy = 0;
-      this.inAir = false;
-      this.scoredThisShot = false;
+    const sheep = {
+      laneIndex: 1,
+      laneTarget: 1
+    };
+
+    let sheepScreenX = 0;
+    let sheepScreenY = 0;
+
+    let bombs = [];
+    let gadgets = [];
+    let bonuses = [];
+    let particles = [];
+
+    // скорость: старт медленный, потом растёт
+    let baseSpeed = 0.0010;
+    let maxSpeed = 0.0035;
+    let speed = baseSpeed;
+
+    // дистанция / техника
+    let distance = 0;
+    let bestDistance = 0;
+    let gadgetsCount = 0;
+    let level = 1;
+
+    let isRunning = false;
+    let isGameOver = false;
+    let lastTime = 0;
+
+    // спавн бомб
+    let bombSpawnTimer = 0;
+    let baseBombInterval = 1300;
+    let minBombInterval = 550;
+    let currentBombInterval = baseBombInterval;
+
+    // спавн техники
+    let gadgetSpawnTimer = 0;
+    let baseGadgetInterval = 800;
+    let minGadgetInterval = 350;
+    let currentGadgetInterval = baseGadgetInterval;
+
+    // спавн бонусов
+    let bonusSpawnTimer = 0;
+    let bonusInterval = 4500; // раз в несколько секунд
+
+    // бонусы
+    const BONUS_DOUBLE = 'double';
+    const BONUS_SHIELD = 'shield';
+    const BONUS_MAGNET = 'magnet';
+    const BONUS_SPEED = 'speed';
+
+    let doubleActive = false;
+    let doubleTimer = 0;
+    let magnetActive = false;
+    let magnetTimer = 0;
+    let speedActive = false;
+    let speedTimer = 0;
+    let shieldCharges = 0;
+
+    const BONUS_DURATION = 6000; // мс
+
+    // взрыв
+    let explosion = {
+      active: false,
+      time: 0,
+      duration: 600,
+      x: 0,
+      y: 0
+    };
+
+    // простые звуки через Web Audio
+    let audioCtx = null;
+    function playBeep(freq = 440, duration = 120, volume = 0.15) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+        }, duration);
+      } catch (e) {
+        // если браузер блокирует звук — просто игнорим
+      }
     }
-  };
-  ball.reset();
 
-  // Вычисление силы броска (просто по очередности кликов)
-  let powerPhase = 0;
-  let lastShotTime = 0;
+    try {
+      const saved = localStorage.getItem('sheep_tech_run_best');
+      if (saved) {
+        bestDistance = parseInt(saved, 10) || 0;
+        bestEl.textContent = bestDistance;
+      }
+    } catch (e) {}
 
-  function shoot() {
-    if (ball.inAir || gameOver) return;
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
 
-    const now = performance.now();
-    if (now - lastShotTime < 250) return; // анти-спам
-    lastShotTime = now;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // растущая сила броска по фазам
-    powerPhase = (powerPhase + 1) % 3;
-    const baseSpeed = 15;
-    const powerMultiplier = 0.7 + powerPhase * 0.3; // 0.7, 1.0, 1.3
-
-    const dirX = hoop.x() - ball.x;
-    const dirY = hoop.y() - ball.y;
-    const distance = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
-    const speed = baseSpeed * powerMultiplier;
-
-    ball.vx = (dirX / distance) * speed;
-    // немного выше центра корзины — поправка на гравитацию
-    ball.vy = (dirY / distance) * speed - 3.5;
-    ball.inAir = true;
-    ball.scoredThisShot = false;
-
-    messageEl.textContent = "Попробуй попасть в кольцо!";
-  }
-
-  canvas.addEventListener("click", shoot);
-  canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    shoot();
-  }, { passive: false });
-
-  // Рисование
-  function drawBoy() {
-    const x = boy.x;
-    const y = boy.y();
-
-    // Ноги
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#e5e7eb";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - 12, y + 35);
-    ctx.moveTo(x + 20, y);
-    ctx.lineTo(x + 32, y + 35);
-    ctx.stroke();
-
-    // Тело
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillRect(x - 5, y - boy.bodyHeight, boy.bodyWidth, boy.bodyHeight);
-
-    // Руки
-    ctx.beginPath();
-    ctx.moveTo(x + 10, y - 40);
-    ctx.lineTo(ball.x, ball.y);
-    ctx.stroke();
-
-    // Голова
-    ctx.beginPath();
-    ctx.fillStyle = "#f97316";
-    ctx.arc(x + 10, y - boy.bodyHeight - 15, 14, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawHoop() {
-    const x = hoop.x();
-    const y = hoop.y();
-
-    // Стойка
-    ctx.fillStyle = "#78350f";
-    ctx.fillRect(x + hoop.width - 10, y - 40, 10, 130);
-
-    // Щит
-    ctx.fillStyle = "#e5e7eb";
-    ctx.fillRect(x + hoop.width - 60, y - 40, 60, 40);
-
-    // Кольцо
-    ctx.strokeStyle = "#f97316";
-    ctx.lineWidth = hoop.rimThickness;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + hoop.width, y);
-    ctx.stroke();
-
-    // Сетка (просто линии)
-    ctx.strokeStyle = "rgba(248, 250, 252, 0.4)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const t = i / 4;
-      const sx = x + hoop.width * t;
-      ctx.beginPath();
-      ctx.moveTo(sx, y);
-      ctx.lineTo(sx, y + 30);
-      ctx.stroke();
+      gameWidth = rect.width;
+      gameHeight = rect.height;
     }
-  }
 
-  function drawBall() {
-    ctx.beginPath();
-    ctx.fillStyle = "#f97316";
-    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fill();
+    function resetGame() {
+      distance = 0;
+      speed = baseSpeed;
+      bombs = [];
+      gadgets = [];
+      bonuses = [];
+      particles = [];
+      gadgetsCount = 0;
+      level = 1;
+      isGameOver = false;
 
-    ctx.strokeStyle = "#ea580c";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.radius * 0.7, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+      bombSpawnTimer = 0;
+      gadgetSpawnTimer = 0;
+      bonusSpawnTimer = 0;
+      currentBombInterval = baseBombInterval;
+      currentGadgetInterval = baseGadgetInterval;
 
-  function drawCourt() {
-    // пол
-    ctx.fillStyle = "#0b1120";
-    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+      doubleActive = false;
+      magnetActive = false;
+      speedActive = false;
+      shieldCharges = 0;
+      doubleTimer = 0;
+      magnetTimer = 0;
+      speedTimer = 0;
+      explosion.active = false;
 
-    // центральная линия
-    ctx.strokeStyle = "#1e293b";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 60);
-    ctx.lineTo(canvas.width, canvas.height - 60);
-    ctx.stroke();
-  }
+      sheep.laneIndex = 1;
+      sheep.laneTarget = 1;
 
-  // Детекция попадания
-  function checkScore() {
-    const rimX = hoop.x();
-    const rimY = hoop.y();
-    const left = rimX;
-    const right = rimX + hoop.width;
-    const top = rimY - 4;
-    const bottom = rimY + 10;
-
-    const wasAbove = ball.y - ball.radius < top;
-    const nowInsideHoriz = ball.x > left && ball.x < right;
-    const nowBelow = ball.y - ball.radius > top;
-
-    if (ball.inAir && !ball.scoredThisShot && wasAbove && nowInsideHoriz && nowBelow) {
-      ball.scoredThisShot = true;
-      score++;
-      scoreEl.textContent = score;
-      messageEl.textContent = "ПОПАЛ! 🔥";
-
-      // пример: здесь можно отправить результат в Telegram (если используется Game API)
-      // if (window.TelegramGameProxy) { TelegramGameProxy.shareScore(score); }
+      distEl.textContent = '0';
+      bestEl.textContent = bestDistance;
+      gadgetsEl.textContent = '0';
+      levelEl.textContent = '1';
+      bonusIndicator.textContent = '';
     }
-  }
 
-  // Основной цикл
-  function update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawCourt();
-    drawHoop();
-    drawBoy();
-    drawBall();
+    function laneToX(laneIndex) {
+      const laneWidth = gameWidth * laneWidthFactor;
+      const center = gameWidth / 2;
+      return center + (laneIndex - 1) * laneWidth;
+    }
 
-    if (ball.inAir) {
-      ball.vy += gravity;
-      ball.x += ball.vx;
-      ball.y += ball.vy;
+    function spawnBomb() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      bombs.push({ laneIndex, progress: 0 });
+    }
 
-      checkScore();
+    function spawnGadget() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      const gadgetTypes = ['phone', 'laptop', 'speaker'];
+      const type = gadgetTypes[Math.floor(Math.random() * gadgetTypes.length)];
+      gadgets.push({
+        laneIndex,
+        progress: 0,
+        type
+      });
+    }
 
-      // приземление / вылет за экран
-      if (ball.y - ball.radius > canvas.height || ball.x - ball.radius > canvas.width + 50) {
-        ball.inAir = false;
-        lives--;
-        livesEl.textContent = lives;
+    function spawnBonus() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      const r = Math.random();
+      let type;
+      if (r < 0.35) type = BONUS_DOUBLE;
+      else if (r < 0.6) type = BONUS_MAGNET;
+      else if (r < 0.85) type = BONUS_SHIELD;
+      else type = BONUS_SPEED;
 
-        if (lives <= 0) {
-          gameOver = true;
-          messageEl.textContent = `Игра окончена! Очки: ${score}. Обнови страницу для повторной игры.`;
-        } else {
-          messageEl.textContent = "Промах! Осталось попыток: " + lives;
-          ball.reset();
+      bonuses.push({
+        laneIndex,
+        progress: 0,
+        type
+      });
+    }
+
+    function updateDifficulty() {
+      const dClamped = Math.min(distance, 800);
+      const t = dClamped / 800; // 0..1
+
+      let effectiveBaseSpeed = baseSpeed + (maxSpeed - baseSpeed) * t;
+      if (speedActive) {
+        effectiveBaseSpeed *= 1.4;
+      }
+      speed = effectiveBaseSpeed;
+
+      currentBombInterval =
+        baseBombInterval - (baseBombInterval - minBombInterval) * t;
+
+      currentGadgetInterval =
+        baseGadgetInterval - (baseGadgetInterval - minGadgetInterval) * t;
+
+      // уровни чисто для отображения
+      if (distance < 150) level = 1;
+      else if (distance < 350) level = 2;
+      else if (distance < 600) level = 3;
+      else level = 4;
+
+      levelEl.textContent = level;
+    }
+
+    function updateSheep(dt) {
+      if (sheep.laneIndex !== sheep.laneTarget) {
+        const dir = sheep.laneTarget > sheep.laneIndex ? 1 : -1;
+        sheep.laneIndex += dir * dt * 0.006;
+        if ((dir > 0 && sheep.laneIndex >= sheep.laneTarget) ||
+            (dir < 0 && sheep.laneIndex <= sheep.laneTarget)) {
+          sheep.laneIndex = sheep.laneTarget;
         }
       }
     }
 
-    requestAnimationFrame(update);
-  }
+    function triggerExplosion() {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+      const progress = 1.02;
+      const y = horizonY + (bottomY - horizonY) * progress;
+      const laneX = laneToX(sheep.laneIndex);
 
-  // Старт
-  ball.reset();
-  update();
+      explosion.active = true;
+      explosion.time = 0;
+      explosion.duration = 600;
+      explosion.x = laneX;
+      explosion.y = y - gameHeight * 0.06;
 
-  // Для Telegram WebApp можно попытаться применить тему
-  if (window.Telegram && window.Telegram.WebApp) {
-    Telegram.WebApp.expand();
-    const bg = Telegram.WebApp.backgroundColor || "#111827";
-    document.body.style.background = bg;
-  }
-</script>
+      // и немного частиц
+      for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speedP = 0.1 + Math.random() * 0.3;
+        particles.push({
+          x: explosion.x,
+          y: explosion.y,
+          vx: Math.cos(angle) * speedP,
+          vy: Math.sin(angle) * speedP,
+          life: 500 + Math.random() * 300,
+          age: 0,
+          color: Math.random() < 0.5 ? '#f97316' : '#fde68a'
+        });
+      }
+
+      playBeep(120, 200, 0.3);
+    }
+
+    function updateBombs(dt) {
+      const speedFactor = speed * dt;
+      for (let i = bombs.length - 1; i >= 0; i--) {
+        const b = bombs[i];
+        b.progress += speedFactor;
+        if (b.progress > 1.3) {
+          bombs.splice(i, 1);
+          continue;
+        }
+
+        if (b.progress > 0.85 && b.progress < 1.03) {
+          const sheepLaneRounded = Math.round(sheep.laneIndex);
+          if (sheepLaneRounded === b.laneIndex) {
+            // если щит есть — спасаемся
+            if (shieldCharges > 0) {
+              shieldCharges -= 1;
+              bombs.splice(i, 1);
+              playBeep(260, 120, 0.2);
+            } else {
+              if (navigator.vibrate) navigator.vibrate(100);
+              triggerExplosion();
+              endGame();
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    function spawnCollectParticles(x, y, color) {
+      for (let i = 0; i < 10; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speedP = 0.08 + Math.random() * 0.18;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speedP,
+          vy: Math.sin(angle) * speedP,
+          life: 350 + Math.random() * 200,
+          age: 0,
+          color
+        });
+      }
+    }
+
+    function updateGadgets(dt) {
+      const speedFactor = speed * dt;
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      for (let i = gadgets.length - 1; i >= 0; i--) {
+        const g = gadgets[i];
+        g.progress += speedFactor;
+        if (g.progress > 1.3) {
+          gadgets.splice(i, 1);
+          continue;
+        }
+
+        const sheepLaneRounded = Math.round(sheep.laneIndex);
+
+        if (magnetActive && g.progress > 0.5) {
+          const laneDiff = Math.abs(g.laneIndex - sheepLaneRounded);
+          if (laneDiff <= 1) {
+            const y = horizonY + (bottomY - horizonY) * g.progress;
+            const laneX = laneToX(g.laneIndex);
+            spawnCollectParticles(laneX, y - gameHeight * 0.08, '#4ade80');
+            gadgets.splice(i, 1);
+            gadgetsCount += 1;
+            gadgetsEl.textContent = gadgetsCount;
+            playBeep(680, 80, 0.18);
+            continue;
+          }
+        }
+
+        if (g.progress > 0.85 && g.progress < 1.05) {
+          if (sheepLaneRounded === g.laneIndex) {
+            const y = horizonY + (bottomY - horizonY) * g.progress;
+            const laneX = laneToX(g.laneIndex);
+            spawnCollectParticles(laneX, y - gameHeight * 0.08, '#4ade80');
+            gadgets.splice(i, 1);
+            gadgetsCount += 1;
+            gadgetsEl.textContent = gadgetsCount;
+            playBeep(720, 90, 0.18);
+          }
+        }
+      }
+    }
+
+    function activateBonus(type) {
+      if (navigator.vibrate) navigator.vibrate(40);
+      if (type === BONUS_DOUBLE) {
+        doubleActive = true;
+        doubleTimer = BONUS_DURATION;
+      } else if (type === BONUS_MAGNET) {
+        magnetActive = true;
+        magnetTimer = BONUS_DURATION;
+      } else if (type === BONUS_SPEED) {
+        speedActive = true;
+        speedTimer = BONUS_DURATION;
+      } else if (type === BONUS_SHIELD) {
+        shieldCharges = Math.min(shieldCharges + 1, 2);
+      }
+      playBeep(900, 150, 0.2);
+    }
+
+    function updateBonuses(dt) {
+      const speedFactor = speed * dt;
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      for (let i = bonuses.length - 1; i >= 0; i--) {
+        const b = bonuses[i];
+        b.progress += speedFactor;
+        if (b.progress > 1.3) {
+          bonuses.splice(i, 1);
+          continue;
+        }
+
+        if (b.progress > 0.85 && b.progress < 1.05) {
+          const sheepLaneRounded = Math.round(sheep.laneIndex);
+          if (sheepLaneRounded === b.laneIndex) {
+            const y = horizonY + (bottomY - horizonY) * b.progress;
+            const laneX = laneToX(b.laneIndex);
+            spawnCollectParticles(laneX, y - gameHeight * 0.08, '#facc15');
+            activateBonus(b.type);
+            bonuses.splice(i, 1);
+          }
+        }
+      }
+
+      if (doubleActive) {
+        doubleTimer -= dt;
+        if (doubleTimer <= 0) doubleActive = false;
+      }
+      if (magnetActive) {
+        magnetTimer -= dt;
+        if (magnetTimer <= 0) magnetActive = false;
+      }
+      if (speedActive) {
+        speedTimer -= dt;
+        if (speedTimer <= 0) speedActive = false;
+      }
+
+      const parts = [];
+      if (doubleActive) {
+        parts.push('🍀 x2');
+      }
+      if (magnetActive) {
+        parts.push('🧲');
+      }
+      if (speedActive) {
+        parts.push('⚡');
+      }
+      if (shieldCharges > 0) {
+        parts.push('🛡×' + shieldCharges);
+      }
+      bonusIndicator.textContent = parts.join(' ');
+    }
+
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.age += dt;
+        if (p.age >= p.life) {
+          particles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 0.0003 * dt;
+      }
+    }
+
+    function updateDistance(dt) {
+      let factor = 0.3;
+      if (doubleActive) factor *= 2;
+      distance += dt * speed * factor;
+      const distInt = Math.floor(distance);
+      distEl.textContent = distInt;
+
+      updateDifficulty();
+    }
+
+    function updateExplosion(dt) {
+      if (!explosion.active) return;
+      explosion.time += dt;
+      if (explosion.time >= explosion.duration) {
+        explosion.active = false;
+      }
+    }
+
+    function update(timestamp) {
+      if (!isRunning || isGameOver) return;
+
+      if (!lastTime) lastTime = timestamp;
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
+      bombSpawnTimer += dt;
+      gadgetSpawnTimer += dt;
+      bonusSpawnTimer += dt;
+
+      if (bombSpawnTimer >= currentBombInterval) {
+        spawnBomb();
+        bombSpawnTimer = 0;
+      }
+
+      if (gadgetSpawnTimer >= currentGadgetInterval) {
+        spawnGadget();
+        gadgetSpawnTimer = 0;
+      }
+
+      if (bonusSpawnTimer >= bonusInterval) {
+        spawnBonus();
+        bonusSpawnTimer = 0;
+      }
+
+      updateSheep(dt);
+      updateBombs(dt);
+      updateGadgets(dt);
+      updateBonuses(dt);
+      updateParticles(dt);
+      updateDistance(dt);
+      updateExplosion(dt);
+    }
+
+    // фон: небо + поле
+    function drawBackground() {
+      ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+      const horizonY = gameHeight * 0.35;
+
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+      skyGrad.addColorStop(0, '#0ea5e9');
+      skyGrad.addColorStop(0.4, '#38bdf8');
+      skyGrad.addColorStop(1, '#a5f3fc');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, gameWidth, horizonY);
+
+      drawCloud(gameWidth * 0.25, horizonY * 0.35, gameWidth * 0.16);
+      drawCloud(gameWidth * 0.7, horizonY * 0.23, gameWidth * 0.2);
+
+      const fieldGrad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
+      fieldGrad.addColorStop(0, '#bbf7d0');
+      fieldGrad.addColorStop(0.4, '#4ade80');
+      fieldGrad.addColorStop(1, '#166534');
+      ctx.fillStyle = fieldGrad;
+      ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(gameWidth * 0.22, gameHeight);
+      ctx.lineTo(gameWidth * 0.78, gameHeight);
+      ctx.lineTo(gameWidth * 0.6, horizonY);
+      ctx.lineTo(gameWidth * 0.4, horizonY);
+      ctx.closePath();
+      const pathGrad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
+      pathGrad.addColorStop(0, '#bbf7d0');
+      pathGrad.addColorStop(0.4, '#86efac');
+      pathGrad.addColorStop(1, '#16a34a');
+      ctx.fillStyle = pathGrad;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([7, 10]);
+      const horizonCenterX = gameWidth / 2;
+      const bottomLeftX = gameWidth * 0.3;
+      const bottomRightX = gameWidth * 0.7;
+
+      ctx.beginPath();
+      ctx.moveTo(horizonCenterX, horizonY);
+      ctx.lineTo(bottomLeftX, gameHeight);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(horizonCenterX, horizonY);
+      ctx.lineTo(bottomRightX, gameHeight);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCloud(x, y, size) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#f9fafb';
+      const r = size / 4;
+      ctx.beginPath();
+      ctx.arc(x - r, y, r * 1.1, 0, Math.PI * 2);
+      ctx.arc(x, y - r * 0.4, r * 1.4, 0, Math.PI * 2);
+      ctx.arc(x + r, y, r * 1.2, 0, Math.PI * 2);
+      ctx.arc(x, y + r * 0.3, r * 1.0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function roundedRect(x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function drawBomb(b) {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      const y = horizonY + (bottomY - horizonY) * b.progress;
+      const scale = 0.5 + b.progress * 0.9;
+
+      const laneX = laneToX(b.laneIndex);
+      const x = laneX;
+
+      const baseRadius = gameWidth * 0.035;
+      const r = baseRadius * scale;
+
+      ctx.save();
+      ctx.translate(x, y - r * 1.4);
+
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.ellipse(0, r * 1.5, r * 1.4, r * 0.6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
+      grad.addColorStop(0, '#4b5563');
+      grad.addColorStop(1, '#020617');
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = Math.max(2, r * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.6);
+      ctx.quadraticCurveTo(r * 0.3, -r * 1.3, 0, -r * 1.9);
+      ctx.stroke();
+
+      const t = Date.now() / 120;
+      const sparkR = r * 0.4;
+      const sx = 0 + Math.cos(t) * sparkR * 0.3;
+      const sy = -r * 1.9 + Math.sin(t) * sparkR * 0.3;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sparkR * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawGadget(g) {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      const y = horizonY + (bottomY - horizonY) * g.progress;
+      const scale = 0.5 + g.progress * 0.9;
+
+      const laneX = laneToX(g.laneIndex);
+      const x = laneX;
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      const size = gameWidth * 0.045 * scale;
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(0, size * 1.3, size * 1.3, size * 0.6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      if (g.type === 'phone') {
+        const w = size * 1.4;
+        const h = size * 2.2;
+        ctx.save();
+        ctx.translate(-w/2, -h*1.4);
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#0ea5e9');
+        grad.addColorStop(1, '#22c55e');
+        roundedRect(0, 0, w, h, w * 0.25);
+        ctx.fillStyle = '#111827';
+        ctx.fill();
+        ctx.save();
+        ctx.translate(w * 0.08, h * 0.07);
+        roundedRect(0, 0, w * 0.84, h * 0.8, w * 0.18);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(w * 0.5, h * 0.88, w * 0.09, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.restore();
+      } else if (g.type === 'laptop') {
+        const w = size * 2.4;
+        const h = size * 1.6;
+        ctx.save();
+        ctx.translate(-w / 2, -h * 1.2);
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#e5e7eb');
+        grad.addColorStop(1, '#cbd5f5');
+        roundedRect(0, 0, w, h, 6);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.save();
+        ctx.translate(w * 0.08, h * 0.12);
+        roundedRect(0, 0, w * 0.84, h * 0.7, 4);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.restore();
+        ctx.translate(-w * 0.05, h * 0.9);
+        roundedRect(0, 0, w * 1.1, h * 0.4, 4);
+        ctx.fillStyle = '#9ca3af';
+        ctx.fill();
+        ctx.restore();
+      } else {
+        // колонка (цилиндр)
+        const w = size * 1.6;
+        const h = size * 2.3;
+        ctx.save();
+        ctx.translate(-w / 2, -h * 1.4);
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#22c55e');
+        grad.addColorStop(1, '#0ea5e9');
+        roundedRect(0, 0, w, h, w * 0.4);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#065f46';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        const cx = w * 0.5;
+        const cy = h * 0.45;
+        const r = w * 0.4;
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // бонусы (иконки)
+    function drawBonus(b) {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+      const y = horizonY + (bottomY - horizonY) * b.progress;
+      const scale = 0.5 + b.progress * 0.9;
+
+      const laneX = laneToX(b.laneIndex);
+      const x = laneX;
+
+      const sizeBase = gameWidth * 0.05;
+      const size = sizeBase * scale;
+
+      ctx.save();
+      ctx.translate(x, y - size * 1.7);
+
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.ellipse(0, size * 1.5, size * 1.2, size * 0.55, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      const glowGrad = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 1.4);
+      if (b.type === BONUS_DOUBLE) {
+        glowGrad.addColorStop(0, 'rgba(190,242,100,0.95)');
+      } else if (b.type === BONUS_SHIELD) {
+        glowGrad.addColorStop(0, 'rgba(129,230,217,0.95)');
+      } else if (b.type === BONUS_MAGNET) {
+        glowGrad.addColorStop(0, 'rgba(221,214,254,0.95)');
+      } else {
+        glowGrad.addColorStop(0, 'rgba(252,165,165,0.95)');
+      }
+      glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = glowGrad;
+      ctx.fill();
+
+      if (b.type === BONUS_DOUBLE) {
+        ctx.fillStyle = '#22c55e';
+        ctx.strokeStyle = '#15803d';
+        ctx.lineWidth = 2;
+        const r = size * 0.55;
+        function leaf(angle) {
+          const dx = Math.cos(angle) * r * 0.45;
+          const dy = Math.sin(angle) * r * 0.45;
+          ctx.beginPath();
+          ctx.arc(dx, dy, r * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        leaf(0);
+        leaf(Math.PI / 2);
+        leaf(Math.PI);
+        leaf(-Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, r * 0.7);
+        ctx.quadraticCurveTo(size * 0.12, r * 1.4, size * 0.2, r * 1.8);
+        ctx.stroke();
+      } else if (b.type === BONUS_SHIELD) {
+        ctx.beginPath();
+        const w = size * 1.1;
+        const h = size * 1.3;
+        ctx.moveTo(0, -h * 0.6);
+        ctx.quadraticCurveTo(w * 0.6, -h * 0.4, w * 0.4, 0);
+        ctx.quadraticCurveTo(0, h * 0.8, 0, h * 1.1);
+        ctx.quadraticCurveTo(0, h * 0.8, -w * 0.4, 0);
+        ctx.quadraticCurveTo(-w * 0.6, -h * 0.4, 0, -h * 0.6);
+        ctx.closePath();
+        const shieldGrad = ctx.createLinearGradient(0, -h, 0, h);
+        shieldGrad.addColorStop(0, '#e0f2fe');
+        shieldGrad.addColorStop(0.5, '#38bdf8');
+        shieldGrad.addColorStop(1, '#0ea5e9');
+        ctx.fillStyle = shieldGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#0369a1';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else if (b.type === BONUS_MAGNET) {
+        const w = size * 1.2;
+        const h = size * 1.3;
+        ctx.lineWidth = 3;
+        const magGrad = ctx.createLinearGradient(-w/2, 0, w/2, 0);
+        magGrad.addColorStop(0, '#f97316');
+        magGrad.addColorStop(1, '#ec4899');
+        ctx.strokeStyle = magGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, w * 0.45, Math.PI * 0.2, Math.PI * 0.8, false);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.4, 0);
+        ctx.lineTo(-w * 0.4, h * 0.4);
+        ctx.moveTo(w * 0.4, 0);
+        ctx.lineTo(w * 0.4, h * 0.4);
+        ctx.stroke();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.4, h * 0.4);
+        ctx.lineTo(-w * 0.25, h * 0.4);
+        ctx.moveTo(w * 0.4, h * 0.4);
+        ctx.lineTo(w * 0.25, h * 0.4);
+        ctx.stroke();
+      } else {
+        const w = size * 1.4;
+        const h = size * 0.6;
+        ctx.beginPath();
+        const grad = ctx.createLinearGradient(-w/2, 0, w/2, 0);
+        grad.addColorStop(0, '#f97316');
+        grad.addColorStop(1, '#fde047');
+        roundedRect(-w/2, -h/2, w, h, h/2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#b91c1c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = `${h * 0.9}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', 0, 0.1);
+      }
+
+      ctx.restore();
+    }
+
+    // попка овечки
+    function drawSheep() {
+      const horizonY = gameHeight * 0.35;
+      const bottomY = gameHeight * 0.9;
+
+      const progress = 1.02;
+      const y = horizonY + (bottomY - horizonY) * progress;
+      const scale = 1;
+
+      const laneX = laneToX(sheep.laneIndex);
+      const bodyWidth = gameWidth * 0.18 * scale;
+      const bodyHeight = gameHeight * 0.1 * scale;
+
+      const x = laneX - bodyWidth / 2;
+      const baseY = y - bodyHeight;
+
+      sheepScreenX = laneX;
+      sheepScreenY = y - bodyHeight * 0.3;
+
+      ctx.save();
+      ctx.translate(x, baseY);
+
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.ellipse(bodyWidth / 2, bodyHeight * 1.25, bodyWidth * 0.7, bodyHeight * 0.55, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#14532d';
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(bodyWidth * 0.5, bodyHeight * 0.65);
+      const fluffLayers = [
+        { rX: bodyWidth * 0.55, rY: bodyHeight * 0.7, color: '#e5e7eb' },
+        { rX: bodyWidth * 0.5,  rY: bodyHeight * 0.65, color: '#f9fafb' },
+        { rX: bodyWidth * 0.45, rY: bodyHeight * 0.6,  color: '#ffffff' }
+      ];
+      fluffLayers.forEach(layer => {
+        ctx.beginPath();
+        const blobs = 14;
+        for (let i = 0; i < blobs; i++) {
+          const angle = (Math.PI * 2 * i) / blobs;
+          const wobble = Math.sin(Date.now()/260 + i) * 1.5;
+          const dx = Math.cos(angle) * (layer.rX + wobble) * 0.7;
+          const dy = Math.sin(angle) * (layer.rY + wobble) * 0.7;
+          ctx.lineTo(dx, dy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = layer.color;
+        ctx.fill();
+      });
+
+      // хвостик
+      ctx.beginPath();
+      const tailR = bodyWidth * 0.16;
+      const tailY = bodyHeight * 0.2;
+      ctx.arc(0, tailY, tailR, 0, Math.PI * 2);
+      ctx.fillStyle = '#f9fafb';
+      ctx.fill();
+
+      // лёгкий градиент сверху, чтобы попка была "объёмной"
+      const buttGrad = ctx.createRadialGradient(
+        0, -bodyHeight * 0.1, bodyWidth * 0.1,
+        0, 0, bodyWidth * 0.7
+      );
+      buttGrad.addColorStop(0, 'rgba(249,250,251,1)');
+      buttGrad.addColorStop(1, 'rgba(209,213,219,0.4)');
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, bodyWidth * 0.7, bodyHeight * 0.8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = buttGrad;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+
+      ctx.fillStyle = '#111827';
+      const legWidth = bodyWidth * 0.12;
+      const legHeight = bodyHeight * 0.8;
+      const offsetY = bodyHeight * 1.0;
+
+      const runPhase = Date.now() / 140;
+      const frontOffset = Math.sin(runPhase) * 3;
+      const backOffset = Math.cos(runPhase) * 3;
+
+      ctx.fillRect(bodyWidth * 0.25, offsetY + backOffset, legWidth, legHeight);
+      ctx.fillRect(bodyWidth * 0.45, offsetY - backOffset, legWidth, legHeight);
+      ctx.fillRect(bodyWidth * 0.65, offsetY - frontOffset, legWidth, legHeight);
+      ctx.fillRect(bodyWidth * 0.05, offsetY + frontOffset, legWidth, legHeight);
+
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        const alpha = 1 - p.age / p.life;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawExplosion() {
+      if (!explosion.active) return;
+      const t = explosion.time / explosion.duration; // 0..1
+      const radius = gameWidth * 0.05 + t * gameWidth * 0.2;
+
+      ctx.save();
+      ctx.globalAlpha = 0.6 * (1 - t);
+      const grad = ctx.createRadialGradient(
+        explosion.x, explosion.y, 0,
+        explosion.x, explosion.y, radius
+      );
+      grad.addColorStop(0, 'rgba(248,250,252,1)');
+      grad.addColorStop(0.3, 'rgba(252,165,165,0.9)');
+      grad.addColorStop(0.7, 'rgba(248,113,113,0.5)');
+      grad.addColorStop(1, 'rgba(239,68,68,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      drawBackground();
+
+      const allObjects = [];
+      bombs.forEach(b => allObjects.push({ type: 'bomb', obj: b, z: b.progress }));
+      gadgets.forEach(g => allObjects.push({ type: 'gadget', obj: g, z: g.progress }));
+      bonuses.forEach(b => allObjects.push({ type: 'bonus', obj: b, z: b.progress }));
+
+      allObjects.sort((a, b) => a.z - b.z);
+
+      for (const item of allObjects) {
+        if (item.type === 'bomb') drawBomb(item.obj);
+        else if (item.type === 'gadget') drawGadget(item.obj);
+        else if (item.type === 'bonus') drawBonus(item.obj);
+      }
+
+      drawSheep();
+      drawParticles();
+      drawExplosion();
+    }
+
+    function gameLoop(timestamp) {
+      update(timestamp);
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      if (isGameOver) return;
+      isGameOver = true;
+      isRunning = false;
+
+      const distInt = Math.floor(distance);
+      finalDistEl.textContent = distInt;
+
+      if (distInt > bestDistance) {
+        bestDistance = distInt;
+        try {
+          localStorage.setItem('sheep_tech_run_best', String(bestDistance));
+        } catch (e) {}
+      }
+
+      bestEl.textContent = bestDistance;
+      finalBestEl.textContent = bestDistance;
+      finalGadgetsEl.textContent = gadgetsCount;
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    function changeLane(dir) {
+      if (!isRunning || isGameOver) return;
+      const target = Math.round(sheep.laneTarget) + dir;
+      if (target < 0 || target > 2) return;
+      sheep.laneTarget = target;
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        changeLane(-1);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        changeLane(1);
+      }
+    });
+
+    let touchStartX = null;
+    let touchStartY = null;
+
+    canvas.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (touchStartX === null) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20) {
+        if (dx < 0) changeLane(-1);
+        else changeLane(1);
+      }
+      touchStartX = touchStartY = null;
+    }, { passive: true });
+
+    startBtn.addEventListener('click', () => {
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      resetGame();
+      isRunning = true;
+      lastTime = performance.now();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      gameOverScreen.classList.add('hidden');
+      resetGame();
+      isRunning = true;
+      lastTime = performance.now();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // init
+    resizeCanvas();
+    resetGame();
+    requestAnimationFrame(gameLoop);
+  </script>
 </body>
 </html>
