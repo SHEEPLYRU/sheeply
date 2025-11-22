@@ -1,578 +1,74 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <title>Лови iPhone в пакет SHEEPLY</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+// server.js
+const express = require('express');
+const cors = require('cors');
+const app = express();
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #ffffff; /* белый фон */
-      color: #111827;
-      overflow: hidden;
-    }
+app.use(cors());
+app.use(express.json());
 
-    #gameWrapper {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      background: #ffffff; /* белый фон */
-    }
+const players = new Map(); 
+// key: username, value: { username, bestScore, totalScore, gamesCount, updatedAt }
 
-    #gameCanvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #ffffff; /* белый фон */
-      touch-action: none;
-    }
+// POST /api/score  -> сохранить результат
+app.post('/api/score', (req, res) => {
+  const { username, score } = req.body || {};
+  if (!username || typeof score !== 'number') {
+    return res.status(400).json({ error: 'username and score required' });
+  }
 
-    /* HUD */
-    #hud {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: rgba(17, 24, 39, 0.06);
-      backdrop-filter: blur(10px);
-      font-size: 14px;
-      align-items: center;
-      z-index: 5;
-      pointer-events: none;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
-    }
+  const cleanUsername = String(username).trim().replace(/^@/, '');
+  if (!cleanUsername) {
+    return res.status(400).json({ error: 'bad username' });
+  }
 
-    #hud span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
+  const s = Math.max(0, Math.floor(score));
 
-    /* Оверлеи */
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      background: radial-gradient(circle at top, rgba(249, 250, 251, 0.98), rgba(229, 231, 235, 0.9));
-    }
-
-    .overlay-inner {
-      width: 90%;
-      max-width: 420px;
-      padding: 20px 18px;
-      border-radius: 22px;
-      background: linear-gradient(135deg, #ffffff, #f3f4f6);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.15);
-      text-align: center;
-      border: 1px solid rgba(209, 213, 219, 0.8);
-    }
-
-    .overlay h1,
-    .overlay h2 {
-      margin: 0 0 12px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .overlay p {
-      margin: 0 0 18px;
-      font-size: 14px;
-      line-height: 1.4;
-      color: #4b5563;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 22px;
-      border-radius: 999px;
-      border: none;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(135deg, #111827, #4b5563);
-      color: #f9fafb;
-      box-shadow: 0 10px 25px rgba(17, 24, 39, 0.35);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-
-    .btn:active {
-      transform: translateY(1px) scale(0.98);
-      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.3);
-    }
-
-    .hint {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 8px;
-    }
-
-    .stats {
-      font-size: 14px;
-      margin-top: 6px;
-      color: #6b7280;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="gameWrapper">
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="hud">
-      <span>⭐ Очки: <strong id="scoreValue">0</strong></span>
-      <span>❤️ Жизни: <strong id="livesValue">3</strong></span>
-    </div>
-
-    <!-- Стартовый экран -->
-    <div id="startScreen" class="overlay">
-      <div class="overlay-inner">
-        <h1>SHEEPLY Catch</h1>
-        <p>
-          Лови большие iPhone-подобные смартфоны в фирменный пакет <strong>SHEEPLY</strong>.<br>
-          Не дай им упасть на пол — у тебя всего 3 жизни!
-        </p>
-        <button class="btn" id="startBtn">Играть</button>
-        <div class="hint">Двигай пальцем по экрану, чтобы двигать пакет</div>
-      </div>
-    </div>
-
-    <!-- Экран окончания игры -->
-    <div id="gameOverScreen" class="overlay hidden">
-      <div class="overlay-inner">
-        <h2>Игра окончена</h2>
-        <p class="stats">Твой результат: <span id="finalScore">0</span> очков</p>
-        <button class="btn" id="restartBtn">Играть ещё раз</button>
-        <div class="hint">Попробуй поймать ещё больше устройств!</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    const scoreEl = document.getElementById('scoreValue');
-    const livesEl = document.getElementById('livesValue');
-    const finalScoreEl = document.getElementById('finalScore');
-
-    const startScreen = document.getElementById('startScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const startBtn = document.getElementById('startBtn');
-    const restartBtn = document.getElementById('restartBtn');
-
-    let gameWidth = 0;
-    let gameHeight = 0;
-
-    // Пакет SHEEPLY
-    const bag = {
-      x: 0,
-      y: 0,
-      width: 140,
-      height: 90,
-      handleHeight: 18
+  let player = players.get(cleanUsername);
+  if (!player) {
+    player = {
+      username: cleanUsername,
+      bestScore: s,
+      totalScore: s,
+      gamesCount: 1,
+      updatedAt: new Date()
     };
+  } else {
+    player.bestScore = Math.max(player.bestScore, s);
+    player.totalScore += s;
+    player.gamesCount += 1;
+    player.updatedAt = new Date();
+  }
 
-    // "iPhone" – большой телефон
-    const phones = [];
-    const phoneColors = [
-      { body1: '#f9fafb', body2: '#e5e7eb', frame: '#9ca3af' }, // светлый
-      { body1: '#111827', body2: '#020617', frame: '#4b5563' }, // чёрный
-      { body1: '#e5e7eb', body2: '#d1d5db', frame: '#9ca3af' }, // серебро
-      { body1: '#0f172a', body2: '#1e293b', frame: '#334155' }  // тёмно-синий
-    ];
+  players.set(cleanUsername, player);
 
-    let score = 0;
-    let lives = 3;
-    let isRunning = false;
-    let isGameOver = false;
-    let lastTime = 0;
-    let spawnTimer = 0;
-    let spawnInterval = 1000; // мс
+  res.json({ ok: true, player });
+});
 
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+// GET /api/leaderboard?limit=10&type=best|total
+app.get('/api/leaderboard', (req, res) => {
+  const limit = parseInt(req.query.limit || '10', 10);
+  const type = req.query.type === 'total' ? 'total' : 'best';
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  let arr = Array.from(players.values());
 
-      const oldWidth = gameWidth || rect.width;
-      gameWidth = rect.width;
-      gameHeight = rect.height;
+  if (type === 'total') {
+    arr.sort((a, b) => b.totalScore - a.totalScore);
+  } else {
+    arr.sort((a, b) => b.bestScore - a.bestScore);
+  }
 
-      // адаптация позиции пакета
-      if (bag.x) {
-        const ratioX = gameWidth / oldWidth;
-        bag.x *= ratioX;
-      } else {
-        bag.x = gameWidth / 2 - bag.width / 2;
-      }
-      bag.y = gameHeight - bag.height - 20;
-    }
+  arr = arr.slice(0, Math.max(1, limit));
 
-    function resetGame() {
-      score = 0;
-      lives = 3;
-      spawnTimer = 0;
-      phones.length = 0;
-      isGameOver = false;
+  res.json(arr.map(p => ({
+    username: p.username,
+    bestScore: p.bestScore,
+    totalScore: p.totalScore,
+    gamesCount: p.gamesCount
+  })));
+});
 
-      scoreEl.textContent = score;
-      livesEl.textContent = lives;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('SHEEPLY leaderboard server running on port', PORT);
+});
 
-      // размеры пакета относительно экрана
-      bag.width = Math.max(120, gameWidth * 0.3);
-      bag.height = bag.width * 0.65;
-      bag.handleHeight = 18;
-      bag.x = gameWidth / 2 - bag.width / 2;
-      bag.y = gameHeight - bag.height - 20;
-
-      spawnInterval = 1000;
-    }
-
-    function spawnPhone() {
-      const phoneHeight = Math.max(150, gameHeight * 0.25);
-      const phoneWidth = phoneHeight * 0.47; // пропорции примерно как у iPhone
-      const x = phoneWidth / 2 + Math.random() * (gameWidth - phoneWidth);
-      const speed = 2.0 + Math.random() * 1.5;
-
-      const colorScheme = phoneColors[Math.floor(Math.random() * phoneColors.length)];
-      const tilt = (Math.random() - 0.5) * 0.25; // лёгкий наклон
-
-      phones.push({
-        x,
-        y: -phoneHeight,
-        width: phoneWidth,
-        height: phoneHeight,
-        speed,
-        color: colorScheme,
-        tilt
-      });
-    }
-
-    function update(delta) {
-      if (!isRunning || isGameOver) return;
-
-      const dt = delta;
-      spawnTimer += dt;
-
-      if (spawnTimer >= spawnInterval) {
-        spawnPhone();
-        spawnTimer = 0;
-        if (spawnInterval > 450) spawnInterval -= 8;
-      }
-
-      // обновляем телефоны
-      for (let i = phones.length - 1; i >= 0; i--) {
-        const p = phones[i];
-        p.y += p.speed * (dt / 16);
-
-        // прямоугольная зона для коллизии
-        const phoneBottom = p.y + p.height;
-        const inYRange =
-          phoneBottom >= bag.y &&
-          p.y <= bag.y + bag.height;
-        const inXRange =
-          p.x + p.width / 2 >= bag.x &&
-          p.x - p.width / 2 <= bag.x + bag.width;
-
-        if (inYRange && inXRange) {
-          // поймали
-          phones.splice(i, 1);
-          score += 1;
-          scoreEl.textContent = score;
-          continue;
-        }
-
-        // упал ниже
-        if (p.y - p.height > gameHeight) {
-          phones.splice(i, 1);
-          lives -= 1;
-          livesEl.textContent = lives;
-          if (lives <= 0) {
-            endGame();
-            return;
-          }
-        }
-      }
-    }
-
-    function drawBag() {
-      const { x, y, width, height, handleHeight } = bag;
-      const radius = 16;
-
-      ctx.save();
-
-      // тень
-      ctx.shadowColor = 'rgba(15, 23, 42, 0.12)';
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 8;
-
-      // пакет
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-
-      const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-      gradient.addColorStop(0, '#ffffff');
-      gradient.addColorStop(1, '#e5e7eb');
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = '#d1d5db';
-      ctx.stroke();
-
-      // ручки пакета
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.beginPath();
-      const handleLeftX = x + width * 0.25;
-      const handleRightX = x + width * 0.75;
-      const handleYTop = y - handleHeight;
-      ctx.moveTo(handleLeftX, y + 8);
-      ctx.quadraticCurveTo(
-        (x + width / 2),
-        handleYTop,
-        handleRightX,
-        y + 8
-      );
-      ctx.strokeStyle = '#9ca3af';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // надпись SHEEPLY
-      ctx.save();
-      ctx.fillStyle = '#111827';
-      ctx.font = `bold ${Math.max(16, width * 0.14)}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('SHEEPLY', x + width / 2, y + height / 2 + 2);
-      ctx.restore();
-
-      ctx.restore();
-    }
-
-    function drawPhone(p) {
-      const { x, y, width, height, color, tilt } = p;
-      const radius = width * 0.2;
-      const screenInset = width * 0.06;
-
-      ctx.save();
-      ctx.translate(x, y + height / 2);
-      ctx.rotate(tilt);
-
-      // корпус
-      ctx.beginPath();
-      ctx.moveTo(-width / 2 + radius, -height / 2);
-      ctx.lineTo(width / 2 - radius, -height / 2);
-      ctx.quadraticCurveTo(width / 2, -height / 2, width / 2, -height / 2 + radius);
-      ctx.lineTo(width / 2, height / 2 - radius);
-      ctx.quadraticCurveTo(width / 2, height / 2, width / 2 - radius, height / 2);
-      ctx.lineTo(-width / 2 + radius, height / 2);
-      ctx.quadraticCurveTo(-width / 2, height / 2, -width / 2, height / 2 - radius);
-      ctx.lineTo(-width / 2, -height / 2 + radius);
-      ctx.quadraticCurveTo(-width / 2, -height / 2, -width / 2 + radius, -height / 2);
-      ctx.closePath();
-
-      // тень
-      ctx.shadowColor = 'rgba(15, 23, 42, 0.25)';
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 10;
-
-      const bodyGradient = ctx.createLinearGradient(-width / 2, -height / 2, width / 2, height / 2);
-      bodyGradient.addColorStop(0, color.body1);
-      bodyGradient.addColorStop(1, color.body2);
-      ctx.fillStyle = bodyGradient;
-      ctx.fill();
-
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = color.frame;
-      ctx.stroke();
-
-      // экран
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.beginPath();
-      const screenX = -width / 2 + screenInset;
-      const screenY = -height / 2 + screenInset * 1.5;
-      const screenW = width - screenInset * 2;
-      const screenH = height - screenInset * 3;
-      const screenR = screenW * 0.22;
-
-      roundedRectPath(screenX, screenY, screenW, screenH, screenR);
-      const screenGradient = ctx.createLinearGradient(0, screenY, 0, screenY + screenH);
-      screenGradient.addColorStop(0, '#020617');
-      screenGradient.addColorStop(1, '#0f172a');
-      ctx.fillStyle = screenGradient;
-      ctx.fill();
-
-      // "контент" на экране – лёгкие полосы
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#f9fafb';
-      const lineCount = 4;
-      for (let i = 0; i < lineCount; i++) {
-        const ly = screenY + screenH * 0.2 + (i * screenH * 0.15);
-        ctx.fillRect(screenX + screenW * 0.12, ly, screenW * 0.76, screenH * 0.04);
-      }
-      ctx.globalAlpha = 1;
-
-      // "чёлка" / датчики
-      const notchWidth = screenW * 0.42;
-      const notchHeight = screenH * 0.09;
-      const notchRadius = notchHeight / 2;
-      const notchX = 0 - notchWidth / 2;
-      const notchY = screenY - notchHeight / 2;
-
-      ctx.beginPath();
-      roundedRectPath(notchX, notchY, notchWidth, notchHeight, notchRadius);
-      ctx.fillStyle = '#020617';
-      ctx.fill();
-
-      // блок камер сзади (намёк)
-      const camRadius = width * 0.07;
-      const camX = -width / 2 + camRadius * 2;
-      const camY = -height / 2 + camRadius * 2.4;
-      ctx.beginPath();
-      ctx.fillStyle = '#020617';
-      ctx.arc(camX, camY, camRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.fillStyle = '#e5e7eb';
-      ctx.arc(camX, camY, camRadius * 0.45, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    function roundedRectPath(x, y, w, h, r) {
-      const r2 = Math.min(r, w / 2, h / 2);
-      ctx.moveTo(x + r2, y);
-      ctx.lineTo(x + w - r2, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r2);
-      ctx.lineTo(x + w, y + h - r2);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r2, y + h);
-      ctx.lineTo(x + r2, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r2);
-      ctx.lineTo(x, y + r2);
-      ctx.quadraticCurveTo(x, y, x + r2, y);
-    }
-
-    function drawPhones() {
-      phones.forEach(p => drawPhone(p));
-    }
-
-    function drawFloorShadow() {
-      // лёгкое затемнение под пакетом для объёма
-      const gradient = ctx.createRadialGradient(
-        gameWidth / 2,
-        gameHeight,
-        10,
-        gameWidth / 2,
-        gameHeight,
-        gameWidth / 1.2
-      );
-      gradient.addColorStop(0, 'rgba(15, 23, 42, 0.06)');
-      gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, gameWidth, gameHeight);
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, gameWidth, gameHeight);
-      // фон белый уже задан, просто чистим
-      drawFloorShadow();
-      drawBag();
-      drawPhones();
-    }
-
-    function gameLoop(timestamp) {
-      if (!lastTime) lastTime = timestamp;
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-
-      if (isRunning && !isGameOver) {
-        update(delta);
-      }
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function moveBagTo(clientX) {
-      const rect = canvas.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const half = bag.width / 2;
-      bag.x = Math.max(0, Math.min(gameWidth - bag.width, x - half));
-    }
-
-    function endGame() {
-      isGameOver = true;
-      isRunning = false;
-      finalScoreEl.textContent = score;
-      gameOverScreen.classList.remove('hidden');
-    }
-
-    // управление
-    canvas.addEventListener('mousemove', (e) => {
-      moveBagTo(e.clientX);
-    });
-
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (e.touches && e.touches.length > 0) {
-        moveBagTo(e.touches[0].clientX);
-      }
-    }, { passive: false });
-
-    startBtn.addEventListener('click', () => {
-      startScreen.classList.add('hidden');
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
-
-    restartBtn.addEventListener('click', () => {
-      gameOverScreen.classList.add('hidden');
-      resetGame();
-      isRunning = true;
-      lastTime = performance.now();
-    });
-
-    // инициализация
-    window.addEventListener('resize', resizeCanvas);
-
-    resizeCanvas();
-    resetGame();
-    requestAnimationFrame(gameLoop);
-  </script>
-</body>
-</html>
