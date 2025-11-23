@@ -2,13 +2,12 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SHEEPLY Sleep – считай овец</title>
+  <title>SHEEPLY Tap – мини игра с овечкой</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <meta name="theme-color" content="#bde0ff" />
-  <!-- Шрифты: пиксельный для счёта + современный для текста -->
+  <meta name="theme-color" content="#e0f2ff" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -16,14 +15,12 @@
       padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
-
     body {
-      background: #bde0ff;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Baloo 2", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #e0f2ff, #bfdbfe);
       color: #0f172a;
       overflow: hidden;
     }
-
     #app {
       max-width: 480px;
       margin: 0 auto;
@@ -33,532 +30,192 @@
       padding: 10px;
       gap: 8px;
     }
-
     #header {
       flex-shrink: 0;
-      padding: 10px 14px;
+      padding: 8px 14px;
       border-radius: 18px;
       background: linear-gradient(145deg, #ffffff, #e0f2ff);
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 8px 22px rgba(15,23,42,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    #scoreBlock {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      align-items: flex-end;
+      font-size: 11px;
+      gap: 2px;
     }
-
-    #title {
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #0f172a;
+    #scoreMain {
+      font-size: 20px;
     }
-
-    #subtitle {
-      font-size: 12px;
-      color: #4b5563;
-    }
-
-    #stats {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-    }
-
     .pill {
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 9px;
-      padding: 4px 8px;
+      font-size: 10px;
+      padding: 3px 8px;
       border-radius: 999px;
-      background: rgba(148, 163, 184, 0.16);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: #0f172a;
+      background: rgba(148,163,184,0.18);
     }
 
     #gameCard {
       flex: 1;
       min-height: 0;
       border-radius: 22px;
-      background: #bde0ff;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.45);
+      background: radial-gradient(circle at top, #e0f2ff, #ffffff);
+      box-shadow: 0 18px 40px rgba(15,23,42,0.45);
+      position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      position: relative;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
     }
 
-    #canvasWrapper {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
+    #sky {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #bae6fd, #e0f2ff 60%, #f9fafb 100%);
+      z-index: 0;
     }
 
-    #gameCanvas {
-      display: block;
-      width: 100%;
+    #ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 30%;
+      background: linear-gradient(180deg, #e0f2ff, #f9fafb);
+      z-index: 1;
+    }
+
+    #sheepWrapper {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
       height: 100%;
-      touch-action: manipulation;
-      image-rendering: pixelated;
+      width: 100%;
+    }
+
+    #sheepSprite {
+      width: 60%;
+      max-width: 260px;
+      height: auto;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      filter: drop-shadow(0 16px 30px rgba(15,23,42,0.35));
+      transform-origin: center bottom;
+      transition: transform 0.08s ease-out;
+    }
+
+    #sheepSprite.jump {
+      transform: translateY(-16px) scale(1.03);
     }
 
     #hint {
       position: absolute;
-      bottom: 10px;
+      bottom: 8px;
       left: 50%;
       transform: translateX(-50%);
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 11px;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15,23,42,0.6);
       color: #f9fafb;
       display: inline-flex;
       align-items: center;
       gap: 4px;
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(191, 219, 254, 0.9);
-      z-index: 5;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 23, 42, 0.92);
-      z-index: 10;
-      color: #f9fafb;
-    }
-
-    .overlay-inner {
-      width: 90%;
-      max-width: 320px;
-      padding: 16px 14px;
-      border-radius: 18px;
-      background: radial-gradient(circle at top, #0f172a, #020617);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      text-align: center;
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
-    }
-
-    .overlay-inner h2 {
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
-
-    .overlay-inner p {
-      font-size: 12px;
-      margin-bottom: 10px;
-      color: #e5e7eb;
-    }
-
-    .overlay-inner button {
-      margin-top: 6px;
-      border: none;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: "Inter", system-ui, sans-serif;
-      cursor: pointer;
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #0f172a;
-      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.7);
-    }
-
-    .overlay-inner button:active {
-      transform: translateY(1px) scale(0.98);
-      box-shadow: 0 5px 14px rgba(59, 130, 246, 0.7);
-    }
-
-    .hidden {
-      display: none;
+      border: 1px solid rgba(191,219,254,0.9);
+      z-index: 3;
     }
 
     @media (max-width: 400px) {
-      #title { font-size: 10px; }
-      .pill { font-size: 8px; }
-      .overlay-inner h2 { font-size: 11px; }
+      #title { font-size: 14px; }
+      #scoreMain { font-size: 18px; }
+      #sheepSprite { width: 70%; }
     }
   </style>
 </head>
 <body>
   <div id="app">
     <header id="header">
-      <div id="title">SHEEPLY – COUNT SHEEP</div>
-      <div id="subtitle">Тапай по овечке на кровати. Каждые 100 кликов — новый фон. На 3000 овец SHEEPLY засыпает 🌙</div>
-      <div id="stats">
-        <span class="pill">ОВЦЫ: <span id="scoreValue">0</span></span>
-        <span class="pill">РЕКОРД: <span id="bestValue">0</span></span>
-        <span class="pill">КОМБО: <span id="comboValue">0</span></span>
+      <div id="title">SHEEPLY Tap</div>
+      <div id="scoreBlock">
+        <div id="scoreMain"><span id="scoreValue">0</span> овец</div>
+        <div class="pill">Лучший счёт: <span id="bestValue">0</span></div>
       </div>
     </header>
 
     <main id="gameCard">
-      <div id="canvasWrapper">
-        <canvas id="gameCanvas"></canvas>
-        <div id="hint">Нажимай на овцу 🐑, чтобы считать овец перед сном</div>
+      <div id="sky"></div>
+      <div id="ground"></div>
 
-        <div id="sleepOverlay" class="overlay hidden">
-          <div class="overlay-inner">
-            <h2>Ты уснул 😴</h2>
-            <p>Ты насчитал <span id="sleepScore">0</span> овец. SHEEPLY сладко спит на кровати.</p>
-            <button id="restartBtn">Счёт по новой</button>
-          </div>
-        </div>
+      <div id="sheepWrapper">
+        <!-- ВАЖНО: файл sheep.png должен лежать рядом с index.html -->
+        <img id="sheepSprite" src="sheep.png" alt="Sheeply" />
       </div>
+
+      <div id="hint">Тапай по овечке 🐑, чтобы считать овец</div>
     </main>
   </div>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
     const scoreEl = document.getElementById("scoreValue");
-    const bestEl = document.getElementById("bestValue");
-    const comboEl = document.getElementById("comboValue");
-    const hintEl = document.getElementById("hint");
-    const sleepOverlay = document.getElementById("sleepOverlay");
-    const sleepScoreEl = document.getElementById("sleepScore");
-    const restartBtn = document.getElementById("restartBtn");
+    const bestEl  = document.getElementById("bestValue");
+    const sheepEl = document.getElementById("sheepSprite");
+    const hintEl  = document.getElementById("hint");
 
-    let w = 0, h = 0;
+    let score = 0;
+    let best  = 0;
 
-    const backgrounds = [
-      { name: "Утро", skyTop: "#bde0ff", skyBottom: "#ffffff", stars: false },
-      { name: "День", skyTop: "#7dd3fc", skyBottom: "#e0f2ff", stars: false },
-      { name: "Закат", skyTop: "#fb7185", skyBottom: "#fecaca", stars: false },
-      { name: "Ночь", skyTop: "#1e293b", skyBottom: "#020617", stars: true },
-      { name: "Глубокая ночь", skyTop: "#020617", skyBottom: "#020617", stars: true }
-    ];
-
-    const state = {
-      score: 0,
-      best: 0,
-      combo: 0,
-      jumpTime: 0,
-      jumpDuration: 260,
-      wavePhase: 0,
-      sheep: { x: 0, y: 0, size: 80 },
-      bedTop: 0,
-      zzz: [],
-      lastTs: 0,
-      asleep: false
-    };
-
-    // рекорд
+    // читаем рекорд из localStorage
     try {
-      const saved = localStorage.getItem("sheep_sleep_best");
-      if (saved) state.best = parseInt(saved, 10) || 0;
+      const saved = localStorage.getItem("sheeply_sprite_best");
+      if (saved) {
+        best = parseInt(saved, 10) || 0;
+        bestEl.textContent = best;
+      }
     } catch (_) {}
-    bestEl.textContent = state.best;
 
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      w = rect.width;
-      h = rect.height;
-
-      state.sheep.size = Math.min(w, h) * 0.25;
-      const unit = state.sheep.size / 8;
-
-      state.bedTop = h - unit * 5;          // верх кровати ближе к низу
-      state.sheep.y = state.bedTop - state.sheep.size * 0.5;
-      state.sheep.x = w / 2;
+    function updateScore() {
+      scoreEl.textContent = score;
+      bestEl.textContent  = best;
     }
 
-    window.addEventListener("resize", resizeCanvas);
+    function onSheepTap() {
+      hintEl.style.display = "none";
 
-    function updateScoreViews() {
-      scoreEl.textContent = state.score;
-      bestEl.textContent = state.best;
-      comboEl.textContent = state.combo;
-    }
-
-    function handleTap(isAuto = false) {
-      if (state.asleep) return; // когда уснул — больше не считаем
-      if (!isAuto) hintEl.style.display = "none";
-
-      state.score += 1;
-      state.combo += 1;
-      if (state.score > state.best) {
-        state.best = state.score;
+      score += 1;
+      if (score > best) {
+        best = score;
         try {
-          localStorage.setItem("sheep_sleep_best", String(state.best));
+          localStorage.setItem("sheeply_sprite_best", String(best));
         } catch (_) {}
       }
-      state.jumpTime = state.jumpDuration;
-      spawnZzz();
-      updateScoreViews();
+      updateScore();
 
-      // смена фона каждые 100 кликов
-      // (просто используем другой индекс при отрисовке через score)
-      // режим "заснул" на 3000 овец
-      if (state.score >= 3000 && !state.asleep) {
-        state.asleep = true;
-        sleepScoreEl.textContent = state.score;
-        sleepOverlay.classList.remove("hidden");
-      }
+      // анимация прыжка
+      sheepEl.classList.add("jump");
+      setTimeout(() => sheepEl.classList.remove("jump"), 90);
     }
 
-    function isPointInSheep(x, y) {
-      const dx = x - state.sheep.x;
-      const dy = y - state.sheep.y;
-      const r = state.sheep.size * 0.7;
-      return dx * dx + dy * dy <= r * r;
-    }
+    sheepEl.addEventListener("click", onSheepTap);
+    sheepEl.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      onSheepTap();
+    }, { passive: false });
 
-    canvas.addEventListener("click", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      if (isPointInSheep(x, y)) {
-        handleTap(false);
-      } else {
-        state.combo = 0;
-        comboEl.textContent = "0";
-      }
-    });
-
-    canvas.addEventListener("touchstart", (e) => {
-      const t = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const x = t.clientX - rect.left;
-      const y = t.clientY - rect.top;
-      if (isPointInSheep(x, y)) {
-        handleTap(false);
-      } else {
-        state.combo = 0;
-        comboEl.textContent = "0";
-      }
-    }, { passive: true });
-
-    restartBtn.addEventListener("click", () => {
-      state.score = 0;
-      state.combo = 0;
-      state.zzz = [];
-      state.asleep = false;
-      updateScoreViews();
-      sleepOverlay.classList.add("hidden");
-      hintEl.style.display = "block";
-    });
-
-    // Zzz частицы
-    function spawnZzz() {
-      state.zzz.push({
-        x: state.sheep.x + (Math.random() - 0.5) * state.sheep.size * 0.4,
-        y: state.sheep.y - state.sheep.size * 0.7,
-        age: 0,
-        life: 1200 + Math.random() * 600,
-        char: Math.random() < 0.5 ? "Z" : "z",
-        speedY: -0.03 - Math.random() * 0.03
-      });
-    }
-
-    function updateZzz(dt) {
-      for (let i = state.zzz.length - 1; i >= 0; i--) {
-        const z = state.zzz[i];
-        z.age += dt;
-        z.y += z.speedY * dt;
-        if (z.age > z.life) {
-          state.zzz.splice(i, 1);
-        }
-      }
-    }
-
-    function drawZzz() {
-      ctx.save();
-      ctx.font = `${Math.round(state.sheep.size * 0.3)}px "Press Start 2P"`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      for (const z of state.zzz) {
-        const alpha = 1 - z.age / z.life;
-        ctx.globalAlpha = Math.max(0, alpha);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(z.char, z.x, z.y);
-      }
-      ctx.restore();
-    }
-
-    // Фон с кроватью
-    function drawBackground() {
-      const bgIndex = Math.min(
-        Math.floor(state.score / 100),
-        backgrounds.length - 1
-      );
-      const theme = backgrounds[bgIndex];
-
-      const skyHeight = state.bedTop - state.sheep.size * 0.2;
-
-      const grad = ctx.createLinearGradient(0, 0, 0, skyHeight);
-      grad.addColorStop(0, theme.skyTop);
-      grad.addColorStop(1, theme.skyBottom);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, skyHeight);
-
-      // звёзды для ночных тем
-      if (theme.stars) {
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        for (let i = 0; i < 30; i++) {
-          const sx = (i * 73) % w;
-          const sy = (i * 41) % (skyHeight * 0.7);
-          ctx.fillRect(sx, sy, 1, 1);
-        }
-      }
-
-      // пиксельные облака (на дневных)
-      if (!theme.stars) {
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        const t = state.wavePhase * 0.001;
-        drawPixelCloud(w * 0.2 + Math.sin(t) * 18, skyHeight * 0.3, 40);
-        drawPixelCloud(w * 0.75 + Math.cos(t * 0.7) * 22, skyHeight * 0.18, 50);
-      }
-
-      // кровать
-      const unit = state.sheep.size / 8;
-      const bedWidth = state.sheep.size * 3;
-      const bedX = state.sheep.x - bedWidth / 2;
-      const bedTop = state.bedTop;
-      const bedHeight = unit * 3;
-
-      // ножки кровати
-      ctx.fillStyle = "#92400e";
-      ctx.fillRect(bedX - unit * 0.4, bedTop + bedHeight, unit * 1.2, unit * 3);
-      ctx.fillRect(bedX + bedWidth - unit * 0.8, bedTop + bedHeight, unit * 1.2, unit * 3);
-
-      // рама
-      ctx.fillStyle = "#b45309";
-      ctx.fillRect(bedX - unit * 0.5, bedTop, bedWidth + unit, bedHeight);
-
-      // матрас
-      ctx.fillStyle = "#e0f2fe";
-      ctx.fillRect(bedX, bedTop - unit * 1.4, bedWidth, unit * 1.4);
-
-      ctx.fillStyle = "#bfdbfe";
-      ctx.fillRect(bedX, bedTop - unit * 1.4, bedWidth, unit * 0.4);
-
-      // спинка кровати
-      ctx.fillStyle = "#78350f";
-      ctx.fillRect(bedX - unit * 0.8, bedTop - unit * 5, unit * 1.6, unit * 5);
-    }
-
-    function drawPixelCloud(cx, cy, size) {
-      const unit = size / 8;
-      const blocks = [
-        { x: 0, y: 2, w: 8, h: 3 },
-        { x: 1, y: 1, w: 6, h: 2 },
-        { x: 2, y: 0, w: 4, h: 1 },
-        { x: 2, y: 5, w: 4, h: 1 }
-      ];
-      blocks.forEach(b => {
-        ctx.fillRect(
-          cx + (b.x - 4) * unit,
-          cy + (b.y - 3) * unit,
-          b.w * unit,
-          b.h * unit
-        );
-      });
-    }
-
-    // Милее, детальнее овца с короткими лапками
-    function drawSheep() {
-      const s = state.sheep;
-      const unit = s.size / 8;
-      let offsetY = 0;
-
-      if (state.jumpTime > 0) {
-        const t = 1 - state.jumpTime / state.jumpDuration;
-        offsetY = -Math.sin(t * Math.PI) * unit * 2.5;
-      }
-
-      const cx = s.x;
-      const cy = s.y + offsetY;
-
-      // тень на кровати
-      ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + unit * 3.5, unit * 3, unit * 1.3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "#64748b";
-      ctx.fill();
-      ctx.restore();
-
-      // тело (много пикселей, чтобы пушисто)
-      ctx.fillStyle = "#f9fafb";
-      ctx.fillRect(cx - unit * 3, cy - unit * 2, unit * 6, unit * 4);
-      ctx.fillRect(cx - unit * 2.8, cy - unit * 2.6, unit * 5.6, unit * 1);
-      ctx.fillRect(cx - unit * 2.5, cy + unit * 2, unit * 5, unit * 1);
-      ctx.fillStyle = "#e5e7eb";
-      ctx.fillRect(cx - unit * 3, cy - unit * 0.5, unit, unit * 1.8);
-      ctx.fillRect(cx + unit * 2, cy - unit * 0.5, unit, unit * 1.8);
-
-      // голова
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(cx + unit * 2.6, cy - unit * 1.2, unit * 2, unit * 3);
-      ctx.fillStyle = "#f9fafb";
-      ctx.fillRect(cx + unit * 2.6, cy - unit * 0.6, unit * 1.2, unit * 1.8);
-
-      // уши
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(cx + unit * 2.6, cy - unit * 1.6, unit * 0.8, unit * 0.8);
-      ctx.fillRect(cx + unit * 3.8, cy - unit * 1.5, unit * 0.8, unit * 0.9);
-
-      // глаза
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(cx + unit * 2.9, cy - unit * 0.3, unit * 0.6, unit * 0.6);
-      ctx.fillRect(cx + unit * 3.6, cy - unit * 0.3, unit * 0.6, unit * 0.6);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(cx + unit * 3, cy - unit * 0.3, unit * 0.3, unit * 0.3);
-      ctx.fillRect(cx + unit * 3.7, cy - unit * 0.3, unit * 0.3, unit * 0.3);
-
-      // щёчки
-      ctx.fillStyle = "#fecaca";
-      ctx.fillRect(cx + unit * 2.7, cy + unit * 0.6, unit * 0.6, unit * 0.5);
-      ctx.fillRect(cx + unit * 3.7, cy + unit * 0.6, unit * 0.6, unit * 0.5);
-
-      // укороченные ножки
-      ctx.fillStyle = "#020617";
-      const legH = unit * 1.5;
-      ctx.fillRect(cx - unit * 2, cy + unit * 2, unit * 0.9, legH);
-      ctx.fillRect(cx,       cy + unit * 2, unit * 0.9, legH);
-      ctx.fillRect(cx + unit * 2, cy + unit * 2, unit * 0.9, legH);
-
-      // хвост
-      ctx.fillStyle = "#f9fafb";
-      ctx.fillRect(cx - unit * 3.4, cy - unit * 0.4, unit * 0.8, unit * 1.2);
-    }
-
-    function step(timestamp) {
-      if (!state.lastTs) state.lastTs = timestamp;
-      const dt = timestamp - state.lastTs;
-      state.lastTs = timestamp;
-
-      state.wavePhase += dt;
-      if (state.jumpTime > 0) {
-        state.jumpTime -= dt;
-        if (state.jumpTime < 0) state.jumpTime = 0;
-      }
-
-      updateZzz(dt);
-
-      ctx.clearRect(0, 0, w, h);
-      drawBackground();
-      drawSheep();
-      drawZzz();
-
-      requestAnimationFrame(step);
-    }
-
-    // init
-    resizeCanvas();
-    updateScoreViews();
-    requestAnimationFrame(step);
+    updateScore();
   </script>
 </body>
 </html>
