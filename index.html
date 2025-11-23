@@ -1,245 +1,460 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>SHEEPLY 3D Clicker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>SHEEPLY Sleep – считай овец</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#bde0ff" />
+  <!-- Шрифты: пиксельный для счёта + современный для текста -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin:0; padding:0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, #0f172a, #020617);
-      overflow:hidden;
-      color:#f9fafb;
+      background: #bde0ff;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+      overflow: hidden;
     }
-    #gameWrapper {
-      position:relative;
-      width:100vw;
-      height:100vh;
-      overflow:hidden;
+
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      gap: 8px;
     }
-    #hud {
-      position:absolute;
-      top:10px;
-      left:50%;
-      transform:translateX(-50%);
-      background:rgba(15,23,42,0.85);
-      padding:8px 16px;
-      border-radius:999px;
-      font-size:14px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      box-shadow:0 12px 30px rgba(0,0,0,0.6);
-      backdrop-filter:blur(16px);
-      z-index:5;
+
+    #header {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #ffffff, #e0f2ff);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-    #hud span strong { font-weight:700; }
+
+    #title {
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #0f172a;
+    }
+
+    #subtitle {
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    #stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .pill {
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 9px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.16);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #0f172a;
+    }
+
+    #gameCard {
+      flex: 1;
+      min-height: 0;
+      border-radius: 22px;
+      background: #bde0ff;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.45);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    #canvasWrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation;
+      image-rendering: pixelated;
+    }
+
     #hint {
-      position:absolute;
-      bottom:12px;
-      left:50%;
-      transform:translateX(-50%);
-      font-size:12px;
-      background:rgba(15,23,42,0.75);
-      padding:6px 14px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,0.6);
-      z-index:5;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(15, 23, 42, 0.6);
+      color: #f9fafb;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(191, 219, 254, 0.9);
     }
-    canvas { display:block; width:100%; height:100%; }
+
+    #footer {
+      flex-shrink: 0;
+      margin-top: 4px;
+      font-size: 11px;
+      text-align: center;
+      color: #64748b;
+    }
+
+    @media (max-width: 400px) {
+      #title { font-size: 10px; }
+      .pill { font-size: 8px; }
+    }
   </style>
 </head>
 <body>
-  <div id="gameWrapper">
-    <div id="hud">
-      <span>🐑 Овцы: <strong id="score">0</strong></span>
-      <span>✋ За тап: <strong id="perClick">1</strong></span>
-    </div>
-    <div id="hint">Крути сцену и тапай по овце, чтобы собрать стадо</div>
+  <!-- Если нужно использовать Telegram WebApp API, просто добавь:
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  и используй window.Telegram.WebApp внутри JS -->
+  <div id="app">
+    <header id="header">
+      <div id="title">SHEEPLY – COUNT SHEEP</div>
+      <div id="subtitle">Тапай по овечке, считай овец перед сном. Чем больше овец, тем темнее небо 🌙</div>
+      <div id="stats">
+        <span class="pill">ОВЦЫ: <span id="scoreValue">0</span></span>
+        <span class="pill">РЕКОРД: <span id="bestValue">0</span></span>
+        <span class="pill">КОМБО: <span id="comboValue">0</span></span>
+      </div>
+    </header>
+
+    <main id="gameCard">
+      <div id="canvasWrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hint">Нажимай на овцу 🐑, чтобы добавить ещё одну в счёт</div>
+      </div>
+      <div id="footer">Мягкая пиксельная ферма без таймеров и рекламы — только ты и овечки.</div>
+    </main>
   </div>
 
-  <!-- Three.js с CDN -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-
   <script>
-    const wrapper = document.getElementById('gameWrapper');
-    const scoreEl = document.getElementById('score');
-    const perClickEl = document.getElementById('perClick');
-    const hintEl = document.getElementById('hint');
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-    let score = 0;
-    let perClick = 1;
+    const scoreEl = document.getElementById("scoreValue");
+    const bestEl = document.getElementById("bestValue");
+    const comboEl = document.getElementById("comboValue");
+    const hintEl = document.getElementById("hint");
 
-    // --- базовая сцена ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    let w = 0, h = 0;
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      100
-    );
-    camera.position.set(0, 2.2, 4);
+    const state = {
+      score: 0,
+      best: 0,
+      combo: 0,
+      jumpTime: 0,
+      jumpDuration: 260,
+      wavePhase: 0,
+      sheep: { x: 0, y: 0, size: 80 },
+      zzz: [] // массив "Zzz"-частиц
+    };
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    wrapper.appendChild(renderer.domElement);
+    // читаем рекорд
+    try {
+      const saved = localStorage.getItem("sheep_sleep_best");
+      if (saved) {
+        state.best = parseInt(saved, 10) || 0;
+      }
+    } catch (_) {}
+    bestEl.textContent = state.best;
 
-    // свет
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x3b6b2a, 0.9);
-    scene.add(hemi);
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      w = rect.width;
+      h = rect.height;
 
-    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
-    dir.position.set(4, 6, 3);
-    dir.castShadow = true;
-    scene.add(dir);
+      // позиция овцы немного выше центра
+      state.sheep.size = Math.min(w, h) * 0.23;
+      state.sheep.x = w / 2;
+      state.sheep.y = h * 0.6;
+    }
 
-    renderer.shadowMap.enabled = true;
+    window.addEventListener("resize", resizeCanvas);
 
-    // земля
-    const groundGeo = new THREE.PlaneGeometry(20, 20);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x51b94b });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
+    function updateScoreViews() {
+      scoreEl.textContent = state.score;
+      bestEl.textContent = state.best;
+      comboEl.textContent = state.combo;
+    }
 
-    // --- 3D овца (упрощённая, но миленькая) ---
-    const sheep = new THREE.Group();
+    // логика "тап по овце"
+    function handleTap(isAuto = false) {
+      if (!isAuto) hintEl.style.display = "none";
 
-    // тело
-    const bodyGeo = new THREE.SphereGeometry(0.8, 32, 32);
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xfafafa,
-      roughness: 0.7,
-      metalness: 0.1
-    });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.castShadow = true;
-    sheep.add(body);
+      state.score += 1;
+      state.combo += 1;
+      if (state.score > state.best) {
+        state.best = state.score;
+        try {
+          localStorage.setItem("sheep_sleep_best", String(state.best));
+        } catch (_) {}
+      }
+      state.jumpTime = state.jumpDuration; // запускаем прыжок
+      spawnZzz();
+      updateScoreViews();
+    }
 
-    // голова
-    const headGeo = new THREE.SphereGeometry(0.35, 32, 32);
-    const headMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.set(0, 0.25, 0.8);
-    head.castShadow = true;
-    sheep.add(head);
+    function isPointInSheep(x, y) {
+      const dx = x - state.sheep.x;
+      const dy = y - state.sheep.y;
+      const r = state.sheep.size * 0.7;
+      return dx * dx + dy * dy <= r * r;
+    }
 
-    // ушки
-    const earGeo = new THREE.SphereGeometry(0.16, 16, 16);
-    const earL = new THREE.Mesh(earGeo, headMat);
-    const earR = new THREE.Mesh(earGeo, headMat);
-    earL.position.set(-0.3, 0.25, 0.65);
-    earR.position.set(0.3, 0.25, 0.65);
-    sheep.add(earL, earR);
-
-    // мордочка (светлый кружок)
-    const noseGeo = new THREE.SphereGeometry(0.2, 16, 16);
-    const noseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5 });
-    const nose = new THREE.Mesh(noseGeo, noseMat);
-    nose.position.set(0, 0.1, 1.0);
-    sheep.add(nose);
-
-    // глазки
-    const eyeGeo = new THREE.SphereGeometry(0.07, 16, 16);
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeL.position.set(-0.13, 0.25, 0.95);
-    eyeR.position.set(0.13, 0.25, 0.95);
-    sheep.add(eyeL, eyeR);
-
-    // ножки
-    const legGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.6, 16);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-    const legPositions = [
-      [-0.4, -0.6, 0.4],
-      [0.4, -0.6, 0.4],
-      [-0.4, -0.6, -0.4],
-      [0.4, -0.6, -0.4]
-    ];
-    legPositions.forEach(p => {
-      const leg = new THREE.Mesh(legGeo, legMat);
-      leg.position.set(p[0], p[1], p[2]);
-      leg.castShadow = true;
-      sheep.add(leg);
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (isPointInSheep(x, y)) {
+        handleTap(false);
+      } else {
+        // промах по овце не наказывает, просто сбрасываем комбо нежно
+        state.combo = 0;
+        comboEl.textContent = "0";
+      }
     });
 
-    sheep.position.y = 1;
-    scene.add(sheep);
+    canvas.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = t.clientX - rect.left;
+      const y = t.clientY - rect.top;
+      if (isPointInSheep(x, y)) {
+        handleTap(false);
+      } else {
+        state.combo = 0;
+        comboEl.textContent = "0";
+      }
+    }, { passive: true });
 
-    // --- OrbitControls ---
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.target.set(0, 0.8, 0);
+    // Zzz-частицы
+    function spawnZzz() {
+      state.zzz.push({
+        x: state.sheep.x + (Math.random() - 0.5) * state.sheep.size * 0.5,
+        y: state.sheep.y - state.sheep.size * 0.7,
+        age: 0,
+        life: 1200 + Math.random() * 600,
+        char: Math.random() < 0.5 ? "Z" : "z",
+        speedY: -0.03 - Math.random() * 0.03
+      });
+    }
 
-    // --- клик по овце ---
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    function onPointerDown(event) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      const x = ( (event.clientX || event.touches[0].clientX) - rect.left ) / rect.width;
-      const y = ( (event.clientY || event.touches[0].clientY) - rect.top ) / rect.height;
-
-      mouse.x = x * 2 - 1;
-      mouse.y = - (y * 2 - 1);
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(sheep, true);
-
-      if (intersects.length > 0) {
-        // клик по овце
-        score += perClick;
-        scoreEl.textContent = score;
-        hintEl.style.display = 'none';
-        // анимация подпрыгивания
-        jumpStart = performance.now();
+    function updateZzz(dt) {
+      for (let i = state.zzz.length - 1; i >= 0; i--) {
+        const z = state.zzz[i];
+        z.age += dt;
+        z.y += z.speedY * dt;
+        if (z.age > z.life) {
+          state.zzz.splice(i, 1);
+        }
       }
     }
 
-    renderer.domElement.addEventListener('mousedown', onPointerDown);
-    renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
+    function drawZzz() {
+      ctx.save();
+      ctx.font = `${Math.round(state.sheep.size * 0.3)}px "Press Start 2P"`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const z of state.zzz) {
+        const alpha = 1 - z.age / z.life;
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(z.char, z.x, z.y);
+      }
+      ctx.restore();
+    }
 
-    // простая анимация прыжка
-    let jumpStart = null;
+    // Фон: небо + облака + градиент ночь/день
+    function drawBackground() {
+      const progressToNight = Math.min(state.score / 40, 1); // чем больше овец, тем темнее до "ночи"
 
-    function animate(time) {
-      requestAnimationFrame(animate);
+      const topColorDay = { r: 189, g: 224, b: 255 }; // #bde0ff
+      const topColorNight = { r: 15, g: 23, b: 42 };  // #0f172a
 
-      const t = time * 0.001;
+      function lerp(a, b, t) { return a + (b - a) * t; }
 
-      // лёгкое покачивание овцы
-      sheep.position.y = 1 + Math.sin(t * 2) * 0.03;
+      const r = Math.round(lerp(topColorDay.r, topColorNight.r, progressToNight));
+      const g = Math.round(lerp(topColorDay.g, topColorNight.g, progressToNight));
+      const b = Math.round(lerp(topColorDay.b, topColorNight.b, progressToNight));
 
-      // подпрыгивание при клике
-      if (jumpStart !== null) {
-        const p = Math.min((time - jumpStart) / 250, 1); // 0..1
-        const offset = Math.sin(p * Math.PI) * 0.35;
-        sheep.position.y += offset;
-        if (p >= 1) jumpStart = null;
+      const skyTop = `rgb(${r},${g},${b})`;
+      const skyBottom = progressToNight < 0.7 ? "#ffffff" : "#cbd5f5";
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, skyTop);
+      grad.addColorStop(1, skyBottom);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // простые пиксельные облака
+      const cloudColor = `rgba(255,255,255,${1 - progressToNight * 0.5})`;
+      ctx.fillStyle = cloudColor;
+
+      const t = state.wavePhase * 0.001;
+      drawPixelCloud(w * 0.2 + Math.sin(t) * 15, h * 0.2, 40);
+      drawPixelCloud(w * 0.7 + Math.cos(t * 0.7) * 25, h * 0.15, 50);
+
+      // луна появляется ближе к ночи
+      if (progressToNight > 0.3) {
+        const moonAlpha = (progressToNight - 0.3) / 0.7;
+        ctx.save();
+        ctx.globalAlpha = moonAlpha;
+        ctx.beginPath();
+        ctx.arc(w * 0.85, h * 0.15, 14, 0, Math.PI * 2);
+        ctx.fillStyle = "#fefce8";
+        ctx.fill();
+        ctx.restore();
       }
 
-      controls.update();
-      renderer.render(scene, camera);
+      // травка/пол
+      ctx.fillStyle = "#e0f7ff";
+      ctx.fillRect(0, h * 0.7, w, h * 0.3);
+      ctx.fillStyle = "#ffffff";
+      for (let x = 0; x < w; x += 8) {
+        ctx.fillRect(x, h * 0.7 + ((x / 8) % 2) * 4, 8, 4);
+      }
+
+      // забор
+      const fenceY = h * 0.7 - 20;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(0, fenceY, w, 6);
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(0, fenceY + 6, w, 3);
+      ctx.fillStyle = "#e5e7eb";
+      for (let x = 10; x < w; x += 28) {
+        ctx.fillRect(x, fenceY - 18, 6, 24);
+      }
     }
 
-    animate(0);
-
-    // адаптация к экрану
-    function onResize() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+    function drawPixelCloud(cx, cy, size) {
+      const unit = size / 8;
+      const blocks = [
+        { x: 0, y: 2, w: 8, h: 3 },
+        { x: 1, y: 1, w: 6, h: 2 },
+        { x: 2, y: 0, w: 4, h: 1 },
+        { x: 2, y: 5, w: 4, h: 1 }
+      ];
+      blocks.forEach(b => {
+        ctx.fillRect(
+          cx + (b.x - 4) * unit,
+          cy + (b.y - 3) * unit,
+          b.w * unit,
+          b.h * unit
+        );
+      });
     }
-    window.addEventListener('resize', onResize);
+
+    // Пиксельная овца
+    function drawSheep() {
+      const s = state.sheep;
+      const baseSize = s.size;
+      const unit = baseSize / 8;
+
+      // легкий прыжок
+      let offsetY = 0;
+      if (state.jumpTime > 0) {
+        const t = 1 - state.jumpTime / state.jumpDuration; // 0..1
+        offsetY = -Math.sin(t * Math.PI) * unit * 2.5;
+      }
+
+      const cx = s.x;
+      const cy = s.y + offsetY;
+
+      // тень
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + unit * 4.5, unit * 4, unit * 1.7, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#94a3b8";
+      ctx.fill();
+      ctx.restore();
+
+      // тело
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(cx - unit * 3, cy - unit * 2, unit * 6, unit * 4);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillRect(cx - unit * 3, cy - unit, unit, unit * 2);
+      ctx.fillRect(cx + unit * 2, cy - unit, unit, unit * 2);
+      ctx.fillRect(cx - unit * 2, cy - unit * 2.4, unit * 4, unit * 1.2);
+
+      // голова
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(cx + unit * 3, cy - unit * 1.5, unit * 2.1, unit * 3);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillRect(cx + unit * 3, cy - unit, unit * 1.2, unit * 2);
+
+      // глаза
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(cx + unit * 3.3, cy - unit * 0.6, unit * 0.6, unit * 0.6);
+      ctx.fillRect(cx + unit * 3.9, cy - unit * 0.6, unit * 0.6, unit * 0.6);
+
+      // ножки
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(cx - unit * 2.2, cy + unit * 2, unit * 0.9, unit * 2.4);
+      ctx.fillRect(cx - unit * 0.5, cy + unit * 2, unit * 0.9, unit * 2.4);
+      ctx.fillRect(cx + unit * 1.2, cy + unit * 2, unit * 0.9, unit * 2.4);
+    }
+
+    function step(timestamp) {
+      if (!state.lastTs) state.lastTs = timestamp;
+      const dt = timestamp - state.lastTs;
+      state.lastTs = timestamp;
+
+      state.wavePhase += dt;
+      if (state.jumpTime > 0) {
+        state.jumpTime -= dt;
+        if (state.jumpTime < 0) state.jumpTime = 0;
+      }
+
+      updateZzz(dt);
+
+      ctx.clearRect(0, 0, w, h);
+      drawBackground();
+      drawSheep();
+      drawZzz();
+
+      requestAnimationFrame(step);
+    }
+
+    // init
+    resizeCanvas();
+    updateScoreViews();
+    requestAnimationFrame(step);
   </script>
 </body>
 </html>
