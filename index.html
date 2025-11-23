@@ -1,865 +1,245 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>SHEEPLY – Овечья ферма кликер</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <!-- Мультяшный современный шрифт -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>SHEEPLY 3D Clicker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    body{
-      font-family:"Baloo 2",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:radial-gradient(circle at top,#22c55e,#0f172a);
-      color:#0f172a;
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, #0f172a, #020617);
       overflow:hidden;
+      color:#f9fafb;
     }
-    #app{
-      max-width:540px;
-      margin:0 auto;
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      padding:10px;
-      gap:8px;
-    }
-    .card{
-      border-radius:24px;
-      background:radial-gradient(circle at top,#ecfeff,#e0f2fe);
-      box-shadow:0 18px 45px rgba(15,23,42,.5);
-      padding:10px 14px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    #headerCard{flex-shrink:0}
-    #gameCard{
-      flex:1;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      overflow:hidden;
-      padding:10px;
-      background:
-        radial-gradient(circle at top,#bbf7d0,#a5f3fc),
-        linear-gradient(180deg,#cffafe,#bbf7d0);
-    }
-    #shopCard{flex-shrink:0}
-
-    #topBar{
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      align-items:center;
-      font-size:13px;
-      flex-wrap:wrap;
-    }
-    #scoreMain{
-      font-size:22px;
-      font-weight:700;
-      display:flex;
-      align-items:baseline;
-      gap:4px;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      padding:4px 10px;
-      border-radius:999px;
-      background:rgba(15,23,42,.06);
-      font-size:11px;
-    }
-    #canvasWrapper{
-      flex:1;
-      min-height:0;
-      border-radius:20px;
-      background:radial-gradient(circle at top,#22c55e,#16a34a);
-      overflow:hidden;
+    #gameWrapper {
       position:relative;
-      margin-top:6px;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
     }
-    #gameCanvas{
-      display:block;
-      width:100%;
-      height:100%;
-      touch-action:manipulation;
-    }
-    #tapHint{
+    #hud {
       position:absolute;
       top:10px;
       left:50%;
       transform:translateX(-50%);
-      font-size:12px;
-      color:#fefce8;
-      background:rgba(15,23,42,.3);
-      padding:4px 10px;
+      background:rgba(15,23,42,0.85);
+      padding:8px 16px;
       border-radius:999px;
-      backdrop-filter:blur(8px);
-      border:1px solid rgba(254,240,138,.7);
+      font-size:14px;
       display:flex;
+      gap:10px;
       align-items:center;
-      gap:6px;
+      box-shadow:0 12px 30px rgba(0,0,0,0.6);
+      backdrop-filter:blur(16px);
       z-index:5;
     }
-
-    #shopTitle{
-      font-size:14px;
-      font-weight:700;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    #shopList{
-      margin-top:4px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      max-height:150px;
-      overflow-y:auto;
-      padding-right:4px;
-    }
-    .shopItem{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:6px 8px;
-      border-radius:14px;
-      background:rgba(255,255,255,.8);
-      box-shadow:0 4px 10px rgba(148,163,184,.7);
-      gap:8px;
-    }
-    .shopInfo{display:flex;flex-direction:column;gap:2px;font-size:12px}
-    .shopName{font-size:13px;font-weight:700}
-    .shopDesc{font-size:11px;color:#4b5563}
-    .shopBtn{
-      border:none;
+    #hud span strong { font-weight:700; }
+    #hint {
+      position:absolute;
+      bottom:12px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:12px;
+      background:rgba(15,23,42,0.75);
+      padding:6px 14px;
       border-radius:999px;
-      padding:6px 10px;
-      font-size:11px;
-      font-weight:700;
-      cursor:pointer;
-      background:linear-gradient(135deg,#22c55e,#4ade80);
-      color:#022c22;
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      box-shadow:0 6px 14px rgba(34,197,94,.7);
-      white-space:nowrap;
+      border:1px solid rgba(148,163,184,0.6);
+      z-index:5;
     }
-    .shopBtn[disabled]{opacity:.5;box-shadow:none;cursor:default}
-    #versionNote{font-size:10px;color:#9ca3af;text-align:right}
-
-    @media(max-width:420px){
-      #scoreMain{font-size:19px}
-    }
+    canvas { display:block; width:100%; height:100%; }
   </style>
 </head>
 <body>
-  <!-- ТВОИ РЕАЛЬНЫЕ ЗВУКИ -->
-  <!-- Создай папку "sounds" рядом с index.html и положи туда:
-       - baa.mp3  (милое "бэээ")
-       - click.mp3 (необязательно, звук короткого щелчка/стрижки) -->
-  <audio id="baaSound" src="sounds/baa.mp3" preload="auto"></audio>
-  <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
-
-  <div id="app">
-    <div id="headerCard" class="card">
-      <div id="topBar">
-        <div>
-          <div id="scoreMain">
-            <span>🐑 Овцы:</span>
-            <span id="scoreValue">0</span>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <span class="pill">✋ За тап: <span id="perTapValue">1</span></span>
-            <span class="pill">⏱ В сек: <span id="perSecValue">0</span></span>
-            <span class="pill">👑 Рекорд: <span id="bestValue">0</span></span>
-          </div>
-        </div>
-        <div class="pill">
-          Овечья ферма без рекламы
-        </div>
-      </div>
+  <div id="gameWrapper">
+    <div id="hud">
+      <span>🐑 Овцы: <strong id="score">0</strong></span>
+      <span>✋ За тап: <strong id="perClick">1</strong></span>
     </div>
-
-    <div id="gameCard" class="card">
-      <div id="canvasWrapper">
-        <div id="tapHint">Тапай по овце, собирай стадо и открывай образы 🎉</div>
-        <canvas id="gameCanvas"></canvas>
-      </div>
-    </div>
-
-    <div id="shopCard" class="card">
-      <div id="shopTitle">
-        <span>🛒 Магазин фермы</span>
-        <span style="font-size:11px;color:#6b7280;">улучшения и образы</span>
-      </div>
-      <div id="shopList"></div>
-      <div id="versionNote">SHEEPLY Farm Clicker v1</div>
-    </div>
+    <div id="hint">Крути сцену и тапай по овце, чтобы собрать стадо</div>
   </div>
 
+  <!-- Three.js с CDN -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const wrapper = document.getElementById('gameWrapper');
+    const scoreEl = document.getElementById('score');
+    const perClickEl = document.getElementById('perClick');
+    const hintEl = document.getElementById('hint');
 
-    const scoreEl = document.getElementById('scoreValue');
-    const perTapEl = document.getElementById('perTapValue');
-    const perSecEl = document.getElementById('perSecValue');
-    const bestEl = document.getElementById('bestValue');
-    const shopListEl = document.getElementById('shopList');
-    const tapHintEl = document.getElementById('tapHint');
+    let score = 0;
+    let perClick = 1;
 
-    const baaSound = document.getElementById('baaSound');
-    const clickSound = document.getElementById('clickSound');
+    // --- базовая сцена ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
 
-    let width = 0, height = 0;
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(0, 2.2, 4);
 
-    // Счёт и прокачка
-    let totalSheep = 0;
-    let bestSheep = 0;
-    let sheepPerTap = 1;
-    let sheepPerSec = 0;
-    let lastThousandStep = 0;
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    wrapper.appendChild(renderer.domElement);
 
-    // Овца на экране
-    const sheep = {
-      x: 0, y: 0, r: 0,
-      skin: 'default' // default | birthday | popstar | love | golden
-    };
+    // свет
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x3b6b2a, 0.9);
+    scene.add(hemi);
 
-    // Партиклы и текст
-    let particles = [];
-    let floatTexts = [];
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    dir.position.set(4, 6, 3);
+    dir.castShadow = true;
+    scene.add(dir);
 
-    // Золотая овца (рандомный бонус)
-    let golden = {
-      active:false,
-      x:0, y:0, r:0,
-      vx:0,
-      timer:0,
-      nextSpawn:8000 + Math.random()*8000 // 8–16 сек
-    };
+    renderer.shadowMap.enabled = true;
 
-    let lastTime = 0;
-    let autoAccum = 0;
+    // земля
+    const groundGeo = new THREE.PlaneGeometry(20, 20);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x51b94b });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
 
-    // ---------- ВСПОМОГАТЕЛЬНОЕ ----------
-    function playSound(el){
-      if(!el || !el.src) return;
-      try{
-        const clone = el.cloneNode();
-        clone.volume = 1.0;
-        clone.play().catch(()=>{});
-      }catch(e){}
-    }
+    // --- 3D овца (упрощённая, но миленькая) ---
+    const sheep = new THREE.Group();
 
-    function resizeCanvas(){
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      width = rect.width;
-      height = rect.height;
-
-      sheep.r = Math.min(width,height)*0.23;
-      sheep.x = width*0.5;
-      sheep.y = height*0.58;
-    }
-    window.addEventListener('resize', resizeCanvas);
-
-    // читаем рекорд
-    try{
-      const saved = localStorage.getItem('sheeply_farm_best');
-      if(saved){
-        bestSheep = parseInt(saved,10)||0;
-        bestEl.textContent = bestSheep;
-      }
-    }catch(e){}
-
-    function updateHeader(){
-      scoreEl.textContent = Math.floor(totalSheep).toLocaleString('ru-RU');
-      perTapEl.textContent = sheepPerTap;
-      perSecEl.textContent = sheepPerSec.toFixed(1).replace('.0','');
-      bestEl.textContent = bestSheep.toLocaleString('ru-RU');
-    }
-
-    // ---------- ПАРТИКЛЫ И ТЕКСТ ----------
-    function spawnSheepParticles(count,x,y,color='#f9fafb'){
-      for(let i=0;i<count;i++){
-        const angle = Math.random()*Math.PI*2;
-        const speed = 0.12+Math.random()*0.16;
-        particles.push({
-          x:x+(Math.random()-0.5)*sheep.r*0.5,
-          y:y+(Math.random()-0.5)*sheep.r*0.3,
-          vx:Math.cos(angle)*speed,
-          vy:Math.sin(angle)*speed-0.05,
-          r:4+Math.random()*3,
-          life:800+Math.random()*400,
-          age:0,
-          color
-        });
-      }
-      if(particles.length>500) particles.splice(0,particles.length-500);
-    }
-
-    function updateParticles(dt){
-      for(let i=particles.length-1;i>=0;i--){
-        const p = particles[i];
-        p.age+=dt;
-        if(p.age>p.life){particles.splice(i,1);continue;}
-        p.x+=p.vx*dt;
-        p.y+=p.vy*dt;
-        p.vy+=0.00025*dt;
-      }
-    }
-
-    function drawParticles(){
-      ctx.save();
-      for(const p of particles){
-        const alpha = 1-p.age/p.life;
-        ctx.globalAlpha = Math.max(0,alpha);
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    function spawnFloatText(text,x,y,color='#0f172a'){
-      floatTexts.push({text,x,y,color,age:0,life:700});
-    }
-    function updateFloatTexts(dt){
-      for(let i=floatTexts.length-1;i>=0;i--){
-        const t=floatTexts[i];
-        t.age+=dt;
-        t.y-=0.04*dt;
-        if(t.age>t.life) floatTexts.splice(i,1);
-      }
-    }
-    function drawFloatTexts(){
-      ctx.save();
-      ctx.font='16px "Baloo 2"';
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      for(const t of floatTexts){
-        const alpha = 1-t.age/t.life;
-        ctx.globalAlpha = Math.max(0,alpha);
-        ctx.fillStyle=t.color;
-        ctx.fillText(t.text,t.x,t.y);
-      }
-      ctx.restore();
-    }
-
-    // ---------- ФОН ----------
-    function drawBackground(){
-      const skyH = height*0.45;
-      const skyGrad = ctx.createLinearGradient(0,0,0,skyH);
-      skyGrad.addColorStop(0,'#60a5fa');
-      skyGrad.addColorStop(1,'#a5f3fc');
-      ctx.fillStyle=skyGrad;
-      ctx.fillRect(0,0,width,skyH);
-
-      // амбар
-      const barnW = width*0.32;
-      const barnH = skyH*0.7;
-      const barnX = width*0.15;
-      const barnY = skyH-barnH*0.6;
-      ctx.fillStyle='#ef4444';
-      ctx.fillRect(barnX,barnY,barnW,barnH);
-      ctx.fillStyle='#fee2e2';
-      ctx.fillRect(barnX+barnW*0.08,barnY+barnH*0.15,barnW*0.84,barnH*0.12);
-      ctx.fillRect(barnX+barnW*0.08,barnY+barnH*0.35,barnW*0.84,barnH*0.12);
-      // двери
-      ctx.fillStyle='#111827';
-      ctx.fillRect(barnX+barnW*0.3,barnY+barnH*0.45,barnW*0.4,barnH*0.5);
-      ctx.strokeStyle='#f9fafb';
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.moveTo(barnX+barnW*0.3,barnY+barnH*0.45);
-      ctx.lineTo(barnX+barnW*0.7,barnY+barnH*0.95);
-      ctx.moveTo(barnX+barnW*0.7,barnY+barnH*0.45);
-      ctx.lineTo(barnX+barnW*0.3,barnY+barnH*0.95);
-      ctx.stroke();
-
-      // трава
-      const fieldGrad = ctx.createLinearGradient(0,skyH,0,height);
-      fieldGrad.addColorStop(0,'#bbf7d0');
-      fieldGrad.addColorStop(1,'#22c55e');
-      ctx.fillStyle=fieldGrad;
-      ctx.fillRect(0,skyH,width,height-skyH);
-
-      // дорожки на поле
-      ctx.save();
-      ctx.globalAlpha=0.3;
-      ctx.fillStyle='#16a34a';
-      const stripeH=40;
-      for(let y=skyH+stripeH;y<height;y+=stripeH*2){
-        ctx.fillRect(0,y,width,stripeH);
-      }
-      ctx.restore();
-
-      // счёт сверху в мире (как текст в игре)
-      ctx.save();
-      ctx.font='18px "Baloo 2"';
-      ctx.fillStyle='#f9fafb';
-      ctx.textAlign='center';
-      ctx.fillText(scoreEl.textContent+' овец',width*0.75,skyH*0.28);
-      ctx.restore();
-    }
-
-    // ---------- РИСУЕМ ОВЦУ (СКИНЫ) ----------
-    function drawSheepBody(skinColor){
-      const x=sheep.x,y=sheep.y,r=sheep.r;
-      // тень
-      ctx.beginPath();
-      ctx.ellipse(x,y+r*0.8,r*0.9,r*0.35,0,0,Math.PI*2);
-      ctx.fillStyle='rgba(15,23,42,.35)';
-      ctx.fill();
-
-      // тело
-      const bodyGrad=ctx.createRadialGradient(
-        x-r*0.2,y-r*0.4,r*0.3,
-        x,y,r*1.2
-      );
-      bodyGrad.addColorStop(0,skinColor.light);
-      bodyGrad.addColorStop(0.6,skinColor.main);
-      bodyGrad.addColorStop(1,skinColor.shadow);
-      ctx.beginPath();
-      ctx.ellipse(x,y,r*1.1,r*0.95,0,0,Math.PI*2);
-      ctx.fillStyle=bodyGrad;
-      ctx.fill();
-
-      // пушистые края
-      ctx.save();
-      ctx.translate(x,y-r*0.15);
-      ctx.fillStyle=skinColor.fluff;
-      const blobs=14;
-      for(let i=0;i<blobs;i++){
-        const ang=(Math.PI*2*i)/blobs;
-        const dx=Math.cos(ang)*r*0.8;
-        const dy=Math.sin(ang)*r*0.65;
-        ctx.beginPath();
-        ctx.arc(dx,dy,r*0.23,0,Math.PI*2);
-        ctx.fill();
-      }
-      ctx.restore();
-
-      // ножки
-      ctx.fillStyle='#111827';
-      const legW=r*0.16,legH=r*0.7;
-      const legY=y+r*0.45;
-      const phase=Date.now()/160;
-      const offset=Math.sin(phase)*3;
-      ctx.fillRect(x-r*0.4,legY+offset,legW,legH);
-      ctx.fillRect(x-r*0.1,legY-offset,legW,legH);
-      ctx.fillRect(x+r*0.2,legY+offset,legW,legH);
-    }
-
-    function getSkinColors(){
-      switch(sheep.skin){
-        case 'birthday':
-          return {main:'#fca5a5',shadow:'#fb7185',light:'#fee2e2',fluff:'#fef2f2'};
-        case 'popstar':
-          return {main:'#a855f7',shadow:'#7c3aed',light:'#e9d5ff',fluff:'#f5f3ff'};
-        case 'love':
-          return {main:'#fb7185',shadow:'#be123c',light:'#fecaca',fluff:'#ffe4e6'};
-        case 'golden':
-          return {main:'#facc15',shadow:'#eab308',light:'#fef9c3',fluff:'#fefce8'};
-        default:
-          return {main:'#e5e7eb',shadow:'#d4d4d8',light:'#f9fafb',fluff:'#ffffff'};
-      }
-    }
-
-    function drawSheep(){
-      const x=sheep.x,y=sheep.y,r=sheep.r;
-      const colors=getSkinColors();
-      drawSheepBody(colors);
-
-      // голова
-      const headX=x-r*0.7;
-      const headY=y-r*0.2;
-      const hr=r*0.5;
-      const headGrad=ctx.createLinearGradient(headX-hr,headY-hr,headX+hr,headY+hr);
-      headGrad.addColorStop(0,'#020617');
-      headGrad.addColorStop(1,'#1f2937');
-      ctx.beginPath();
-      ctx.ellipse(headX,headY,hr*0.9,hr*0.85,0,0,Math.PI*2);
-      ctx.fillStyle=headGrad;
-      ctx.fill();
-
-      // мордочка
-      ctx.beginPath();
-      ctx.ellipse(headX+hr*0.05,headY+hr*0.05,hr*0.65,hr*0.55,0,0,Math.PI*2);
-      ctx.fillStyle='#f9fafb';
-      ctx.fill();
-
-      // ухо
-      ctx.beginPath();
-      ctx.ellipse(headX-hr*0.25,headY-hr*0.6,hr*0.3,hr*0.2,-0.4,0,Math.PI*2);
-      ctx.fillStyle='#020617';
-      ctx.fill();
-
-      // глаз
-      ctx.beginPath();
-      ctx.arc(headX+hr*0.35,headY-hr*0.1,hr*0.18,0,Math.PI*2);
-      ctx.fillStyle='#0f172a';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(headX+hr*0.38,headY-hr*0.15,hr*0.08,0,Math.PI*2);
-      ctx.fillStyle='#f9fafb';
-      ctx.fill();
-
-      // носик
-      ctx.beginPath();
-      ctx.arc(headX-hr*0.15,headY+hr*0.22,hr*0.12,0,Math.PI*2);
-      ctx.fillStyle='#111827';
-      ctx.fill();
-
-      // аксессуары по скину
-      if(sheep.skin==='birthday'){
-        // колпак
-        ctx.beginPath();
-        ctx.moveTo(headX,headY-hr*0.9);
-        ctx.lineTo(headX+hr*0.5,headY-hr*0.1);
-        ctx.lineTo(headX-hr*0.1,headY-hr*0.1);
-        ctx.closePath();
-        ctx.fillStyle='#f97316';
-        ctx.fill();
-        ctx.fillStyle='#facc15';
-        ctx.beginPath();
-        ctx.arc(headX,headY-hr*0.95,hr*0.11,0,Math.PI*2);
-        ctx.fill();
-      }else if(sheep.skin==='popstar'){
-        // очки
-        ctx.fillStyle='#0f172a';
-        const gW=hr*0.9,gH=hr*0.35;
-        ctx.fillRect(headX,headY-hr*0.25,gW,gH);
-        ctx.fillStyle='#22d3ee';
-        ctx.globalAlpha=0.4;
-        ctx.fillRect(headX+3,headY-hr*0.25+3,gW-6,gH-6);
-        ctx.globalAlpha=1;
-        ctx.strokeStyle='#e5e7eb';
-        ctx.lineWidth=2;
-        ctx.strokeRect(headX,headY-hr*0.25,gW,gH);
-      }else if(sheep.skin==='love'){
-        ctx.fillStyle='#fb7185';
-        ctx.beginPath();
-        ctx.moveTo(headX+hr*0.1,headY-hr*0.65);
-        ctx.bezierCurveTo(headX+hr*0.3,headY-hr*0.9,headX+hr*0.6,headY-hr*0.8,headX+hr*0.6,headY-hr*0.5);
-        ctx.bezierCurveTo(headX+hr*0.6,headY-hr*0.2,headX+hr*0.3,headY-hr*0.05,headX+hr*0.1,headY+hr*0.1);
-        ctx.bezierCurveTo(headX-hr*0.1,headY-hr*0.05,headX-hr*0.4,headY-0.2*hr,headX-hr*0.4,headY-0.5*hr);
-        ctx.bezierCurveTo(headX-hr*0.4,headY-0.8*hr,headX-hr*0.1,headY-0.9*hr,headX+hr*0.1,headY-0.65*hr);
-        ctx.fill();
-      }else if(sheep.skin==='golden'){
-        // корона
-        ctx.fillStyle='#facc15';
-        ctx.beginPath();
-        ctx.moveTo(headX-hr*0.3,headY-hr*0.8);
-        ctx.lineTo(headX-hr*0.1,headY-hr*1.1);
-        ctx.lineTo(headX+0,headY-hr*0.9);
-        ctx.lineTo(headX+hr*0.1,headY-hr*1.1);
-        ctx.lineTo(headX+hr*0.3,headY-hr*0.8);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle='#f97316';
-        ctx.beginPath();
-        ctx.arc(headX-hr*0.1,headY-hr*1.05,hr*0.05,0,Math.PI*2);
-        ctx.arc(headX+hr*0.1,headY-hr*1.05,hr*0.05,0,Math.PI*2);
-        ctx.fill();
-      }
-    }
-
-    // ---------- ЗОЛОТАЯ ОВЦА ----------
-    function updateGolden(dt){
-      golden.timer+=dt;
-      if(!golden.active){
-        if(golden.timer>=golden.nextSpawn){
-          golden.active=true;
-          golden.timer=0;
-          golden.r=sheep.r*0.5;
-          golden.y=height*0.35+golden.r*1.2;
-          golden.x=-golden.r;
-          golden.vx=0.12+Math.random()*0.06;
-        }
-      }else{
-        golden.x+=golden.vx*dt;
-        if(golden.x>width+golden.r){
-          golden.active=false;
-          golden.timer=0;
-          golden.nextSpawn=7000+Math.random()*8000;
-        }
-      }
-    }
-
-    function drawGolden(){
-      if(!golden.active) return;
-      ctx.save();
-      // маленькая золотая овца-кружочек
-      const r=golden.r;
-      ctx.beginPath();
-      ctx.ellipse(golden.x,golden.y,r,r*0.85,0,0,Math.PI*2);
-      const grad=ctx.createRadialGradient(
-        golden.x-r*0.2,golden.y-r*0.2,r*0.2,
-        golden.x,golden.y,r*1.1
-      );
-      grad.addColorStop(0,'#fef9c3');
-      grad.addColorStop(0.6,'#facc15');
-      grad.addColorStop(1,'#eab308');
-      ctx.fillStyle=grad;
-      ctx.fill();
-      ctx.strokeStyle='#854d0e';
-      ctx.lineWidth=2;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function isPointInCircle(px,py,cx,cy,r){
-      const dx=px-cx,dy=py-cy;
-      return dx*dx+dy*dy<=r*r;
-    }
-
-    // ---------- КЛИК ПО ОВЦЕ ----------
-    function handleSheepTap(isAuto=false){
-      tapHintEl.style.display='none';
-
-      const gained = sheepPerTap;
-      const oldTotal = totalSheep;
-      totalSheep += gained;
-
-      if(totalSheep>bestSheep){
-        bestSheep=Math.floor(totalSheep);
-        try{localStorage.setItem('sheeply_farm_best',String(bestSheep));}catch(e){}
-      }
-
-      spawnSheepParticles(8+Math.floor(Math.random()*4),sheep.x+sheep.r*0.4,sheep.y- sheep.r*0.2);
-      spawnFloatText('+'+gained,sheep.x+sheep.r*0.3,sheep.y-sheep.r*0.5,'#166534');
-
-      // звук: каждый тап - лёгкий click (если файл есть)
-      if(!isAuto) playSound(clickSound);
-
-      // каждые 1000 овец – настоящее "бэээ"
-      const thousandStep=Math.floor(totalSheep/1000);
-      if(thousandStep>lastThousandStep){
-        lastThousandStep=thousandStep;
-        playSound(baaSound);
-        spawnFloatText('БЭЭЭ! 🐑',sheep.x-sheep.r*0.3,sheep.y-sheep.r*0.9,'#e11d48');
-      }
-
-      updateHeader();
-    }
-
-    function handleGoldenTap(){
-      if(!golden.active) return;
-      golden.active=false;
-      golden.timer=0;
-      golden.nextSpawn=12000+Math.random()*8000;
-      const bonus = Math.max(50,Math.floor(totalSheep*0.15));
-      totalSheep += bonus;
-      if(totalSheep>bestSheep){
-        bestSheep=Math.floor(totalSheep);
-        try{localStorage.setItem('sheeply_farm_best',String(bestSheep));}catch(e){}
-      }
-      spawnSheepParticles(40,sheep.x,sheep.y,'#facc15');
-      spawnFloatText('ЗОЛОТАЯ +'+bonus.toLocaleString('ru-RU'),golden.x,golden.y- golden.r*1.4,'#f59e0b');
-      playSound(baaSound);
-      updateHeader();
-    }
-
-    canvas.addEventListener('click',e=>{
-      const rect=canvas.getBoundingClientRect();
-      const x=e.clientX-rect.left;
-      const y=e.clientY-rect.top;
-      if(golden.active && isPointInCircle(x,y,golden.x,golden.y,golden.r)) return handleGoldenTap();
-      if(isPointInCircle(x,y,sheep.x,sheep.y,sheep.r*1.1)) handleSheepTap(false);
+    // тело
+    const bodyGeo = new THREE.SphereGeometry(0.8, 32, 32);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xfafafa,
+      roughness: 0.7,
+      metalness: 0.1
     });
-    canvas.addEventListener('touchstart',e=>{
-      const t=e.touches[0];
-      const rect=canvas.getBoundingClientRect();
-      const x=t.clientX-rect.left;
-      const y=t.clientY-rect.top;
-      if(golden.active && isPointInCircle(x,y,golden.x,golden.y,golden.r)) return handleGoldenTap();
-      if(isPointInCircle(x,y,sheep.x,sheep.y,sheep.r*1.1)) handleSheepTap(false);
-    },{passive:true});
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    sheep.add(body);
 
-    // ---------- МАГАЗИН ----------
-    const shopItems = [
-      {
-        id:'tapUp',
-        icon:'✋',
-        name:'Сильнее тап',
-        desc:'+1 овца за нажатие.',
-        baseCost:20,
-        level:0,
-        effect(){
-          sheepPerTap+=1;
-        }
-      },
-      {
-        id:'tapUp2',
-        icon:'💪',
-        name:'Супер-тап',
-        desc:'+5 овец за нажатие.',
-        baseCost:200,
-        level:0,
-        effect(){
-          sheepPerTap+=5;
-        }
-      },
-      {
-        id:'auto1',
-        icon:'👨‍🌾',
-        name:'Пастух-новичок',
-        desc:'+0.5 овцы в секунду.',
-        baseCost:50,
-        level:0,
-        effect(){
-          sheepPerSec+=0.5;
-        }
-      },
-      {
-        id:'auto2',
-        icon:'🚜',
-        name:'Трактор-фермер',
-        desc:'+3 овцы в секунду.',
-        baseCost:300,
-        level:0,
-        effect(){
-          sheepPerSec+=3;
-        }
-      },
-      {
-        id:'skinBirthday',
-        icon:'🎂',
-        name:'Овца с Дня рождения',
-        desc:'Нарядный образ. +5% к тапам.',
-        baseCost:500,
-        level:0,
-        effect(){
-          sheep.skin='birthday';
-          sheepPerTap=Math.round(sheepPerTap*1.05);
-        }
-      },
-      {
-        id:'skinPop',
-        icon:'🎤',
-        name:'Овца поп-звезда',
-        desc:'Очки и стиль. +10% к овцам в сек.',
-        baseCost:1500,
-        level:0,
-        effect(){
-          sheep.skin='popstar';
-          sheepPerSec=sheepPerSec*1.1;
-        }
-      },
-      {
-        id:'skinLove',
-        icon:'❤️',
-        name:'Влюблённая овца',
-        desc:'Просто милая. +2 к тапу.',
-        baseCost:2500,
-        level:0,
-        effect(){
-          sheep.skin='love';
-          sheepPerTap+=2;
-        }
-      }
+    // голова
+    const headGeo = new THREE.SphereGeometry(0.35, 32, 32);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(0, 0.25, 0.8);
+    head.castShadow = true;
+    sheep.add(head);
+
+    // ушки
+    const earGeo = new THREE.SphereGeometry(0.16, 16, 16);
+    const earL = new THREE.Mesh(earGeo, headMat);
+    const earR = new THREE.Mesh(earGeo, headMat);
+    earL.position.set(-0.3, 0.25, 0.65);
+    earR.position.set(0.3, 0.25, 0.65);
+    sheep.add(earL, earR);
+
+    // мордочка (светлый кружок)
+    const noseGeo = new THREE.SphereGeometry(0.2, 16, 16);
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5 });
+    const nose = new THREE.Mesh(noseGeo, noseMat);
+    nose.position.set(0, 0.1, 1.0);
+    sheep.add(nose);
+
+    // глазки
+    const eyeGeo = new THREE.SphereGeometry(0.07, 16, 16);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.13, 0.25, 0.95);
+    eyeR.position.set(0.13, 0.25, 0.95);
+    sheep.add(eyeL, eyeR);
+
+    // ножки
+    const legGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.6, 16);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const legPositions = [
+      [-0.4, -0.6, 0.4],
+      [0.4, -0.6, 0.4],
+      [-0.4, -0.6, -0.4],
+      [0.4, -0.6, -0.4]
     ];
+    legPositions.forEach(p => {
+      const leg = new THREE.Mesh(legGeo, legMat);
+      leg.position.set(p[0], p[1], p[2]);
+      leg.castShadow = true;
+      sheep.add(leg);
+    });
 
-    function getCost(item){
-      return Math.floor(item.baseCost*Math.pow(1.7,item.level));
+    sheep.position.y = 1;
+    scene.add(sheep);
+
+    // --- OrbitControls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.8, 0);
+
+    // --- клик по овце ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onPointerDown(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ( (event.clientX || event.touches[0].clientX) - rect.left ) / rect.width;
+      const y = ( (event.clientY || event.touches[0].clientY) - rect.top ) / rect.height;
+
+      mouse.x = x * 2 - 1;
+      mouse.y = - (y * 2 - 1);
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(sheep, true);
+
+      if (intersects.length > 0) {
+        // клик по овце
+        score += perClick;
+        scoreEl.textContent = score;
+        hintEl.style.display = 'none';
+        // анимация подпрыгивания
+        jumpStart = performance.now();
+      }
     }
 
-    function renderShop(){
-      shopListEl.innerHTML='';
-      shopItems.forEach(item=>{
-        const cost=getCost(item);
-        const canBuy=totalSheep>=cost;
-        const row=document.createElement('div');
-        row.className='shopItem';
+    renderer.domElement.addEventListener('mousedown', onPointerDown);
+    renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
 
-        const info=document.createElement('div');
-        info.className='shopInfo';
+    // простая анимация прыжка
+    let jumpStart = null;
 
-        const name=document.createElement('div');
-        name.className='shopName';
-        name.textContent=`${item.icon} ${item.name}`;
+    function animate(time) {
+      requestAnimationFrame(animate);
 
-        const desc=document.createElement('div');
-        desc.className='shopDesc';
-        desc.textContent=`${item.desc} Уровень: ${item.level}. Цена: ${cost.toLocaleString('ru-RU')} 🐑`;
+      const t = time * 0.001;
 
-        info.appendChild(name);
-        info.appendChild(desc);
+      // лёгкое покачивание овцы
+      sheep.position.y = 1 + Math.sin(t * 2) * 0.03;
 
-        const btn=document.createElement('button');
-        btn.className='shopBtn';
-        btn.disabled=!canBuy;
-        btn.textContent = canBuy ? 'Купить' : 'Мало овец';
-
-        btn.addEventListener('click',()=>{
-          const realCost=getCost(item);
-          if(totalSheep<realCost) return;
-          totalSheep-=realCost;
-          item.level++;
-          item.effect();
-          spawnFloatText('UP!',sheep.x,sheep.y-sheep.r,'#1d4ed8');
-          playSound(clickSound);
-          updateHeader();
-          renderShop();
-        });
-
-        row.appendChild(info);
-        row.appendChild(btn);
-        shopListEl.appendChild(row);
-      });
-    }
-
-    // ---------- ЛУП ----------
-    function loop(ts){
-      if(!lastTime) lastTime=ts;
-      const dt = ts-lastTime;
-      lastTime=ts;
-
-      // авто-овцы
-      if(sheepPerSec>0){
-        autoAccum += (sheepPerSec*dt)/1000;
-        if(autoAccum>=1){
-          const whole=Math.floor(autoAccum);
-          autoAccum-=whole;
-          totalSheep+=whole;
-          if(totalSheep>bestSheep){
-            bestSheep=Math.floor(totalSheep);
-            try{localStorage.setItem('sheeply_farm_best',String(bestSheep));}catch(e){}
-          }
-          updateHeader();
-        }
+      // подпрыгивание при клике
+      if (jumpStart !== null) {
+        const p = Math.min((time - jumpStart) / 250, 1); // 0..1
+        const offset = Math.sin(p * Math.PI) * 0.35;
+        sheep.position.y += offset;
+        if (p >= 1) jumpStart = null;
       }
 
-      updateParticles(dt);
-      updateFloatTexts(dt);
-      updateGolden(dt);
-
-      ctx.clearRect(0,0,width,height);
-      drawBackground();
-      drawParticles();
-      drawSheep();
-      drawGolden();
-      drawFloatTexts();
-
-      requestAnimationFrame(loop);
+      controls.update();
+      renderer.render(scene, camera);
     }
 
-    // ---------- START ----------
-    resizeCanvas();
-    updateHeader();
-    renderShop();
-    requestAnimationFrame(loop);
+    animate(0);
+
+    // адаптация к экрану
+    function onResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onResize);
   </script>
 </body>
 </html>
