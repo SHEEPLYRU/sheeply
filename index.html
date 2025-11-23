@@ -2,9 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SHEEPLY Tap – мини игра с овечкой</title>
+  <title>SHEEPLY Clicker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <meta name="theme-color" content="#e0f2ff" />
+  <meta name="theme-color" content="#bfdbfe" />
+  <!-- Современный шрифт -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
@@ -22,105 +23,102 @@
       overflow: hidden;
     }
     #app {
-      max-width: 480px;
+      max-width: 540px;
       margin: 0 auto;
       height: 100vh;
       display: flex;
       flex-direction: column;
       padding: 10px;
-      gap: 8px;
+      gap: 10px;
     }
-    #header {
+
+    /* HEADER */
+    #headerCard {
       flex-shrink: 0;
-      padding: 8px 14px;
-      border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff, #e0f2ff);
-      box-shadow: 0 8px 22px rgba(15,23,42,0.25);
+      border-radius: 20px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224,242,254,0.9));
+      box-shadow: 0 14px 35px rgba(15,23,42,0.25);
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
     }
     #title {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 700;
+    }
+    #subtitle {
+      font-size: 11px;
+      color: #64748b;
     }
     #scoreBlock {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
+      gap: 4px;
       font-size: 11px;
-      gap: 2px;
     }
     #scoreMain {
-      font-size: 20px;
+      font-size: 22px;
     }
     .pill {
-      font-size: 10px;
-      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
       border-radius: 999px;
       background: rgba(148,163,184,0.18);
+      font-size: 10px;
     }
 
+    /* GAME */
     #gameCard {
       flex: 1;
       min-height: 0;
-      border-radius: 22px;
+      border-radius: 24px;
       background: radial-gradient(circle at top, #e0f2ff, #ffffff);
       box-shadow: 0 18px 40px rgba(15,23,42,0.45);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
       position: relative;
       overflow: hidden;
+    }
+    #logoArea {
+      flex: 1;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 10px;
+      position: relative;
     }
-
-    #sky {
+    #logoGlow {
       position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, #bae6fd, #e0f2ff 60%, #f9fafb 100%);
+      width: 70%;
+      max-width: 280px;
+      aspect-ratio: 1/1;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(191,219,254,0.9) 0%, rgba(191,219,254,0) 60%);
+      filter: blur(4px);
       z-index: 0;
     }
-
-    #ground {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 30%;
-      background: linear-gradient(180deg, #e0f2ff, #f9fafb);
-      z-index: 1;
-    }
-
-    #sheepWrapper {
+    #logo {
       position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      height: 100%;
-      width: 100%;
-    }
-
-    #sheepSprite {
-      width: 60%;
+      z-index: 1;
+      width: 65%;
       max-width: 260px;
       height: auto;
       cursor: pointer;
       user-select: none;
       -webkit-user-drag: none;
-      filter: drop-shadow(0 16px 30px rgba(15,23,42,0.35));
+      filter: drop-shadow(0 18px 35px rgba(15,23,42,0.4));
       transform-origin: center bottom;
-      transition: transform 0.08s ease-out;
+      transition: transform 0.07s ease-out;
     }
-
-    #sheepSprite.jump {
-      transform: translateY(-16px) scale(1.03);
+    #logo.pressed {
+      transform: translateY(-10px) scale(1.03);
     }
-
     #hint {
       position: absolute;
       bottom: 8px;
@@ -129,93 +127,377 @@
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 11px;
-      background: rgba(15,23,42,0.6);
+      background: rgba(15,23,42,0.65);
       color: #f9fafb;
       display: inline-flex;
       align-items: center;
       gap: 4px;
       backdrop-filter: blur(12px);
       border: 1px solid rgba(191,219,254,0.9);
-      z-index: 3;
+      z-index: 2;
     }
 
-    @media (max-width: 400px) {
-      #title { font-size: 14px; }
-      #scoreMain { font-size: 18px; }
-      #sheepSprite { width: 70%; }
+    /* FLOATING +1 */
+    .float-text {
+      position: absolute;
+      font-size: 14px;
+      color: #0f766e;
+      pointer-events: none;
+      animation: floatUp 700ms ease-out forwards;
+      text-shadow: 0 1px 0 #e0f2fe;
+    }
+    @keyframes floatUp {
+      from { transform: translate(-50%, 0); opacity: 1; }
+      to   { transform: translate(-50%, -40px); opacity: 0; }
+    }
+
+    /* BONUS CARD */
+    #bonusCard {
+      flex-shrink: 0;
+      border-radius: 20px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219,234,254,0.9));
+      box-shadow: 0 12px 30px rgba(15,23,42,0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #bonusTitle {
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #bonusTitle span:last-child {
+      font-size: 11px;
+      color: #64748b;
+    }
+    #bonusList {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .bonusItem {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 5px 14px rgba(148,163,184,0.65);
+    }
+    .bonusInfo {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .bonusName {
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .bonusDesc {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .bonusMeta {
+      font-size: 10px;
+      color: #0f172a;
+    }
+    .bonusButton {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      color: #022c22;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 8px 18px rgba(56,189,248,0.7);
+      white-space: nowrap;
+    }
+    .bonusButton[disabled] {
+      opacity: 0.45;
+      box-shadow: none;
+      cursor: default;
+    }
+    .bonusBar {
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(226,232,240,0.9);
+      overflow: hidden;
+      margin-top: 3px;
+    }
+    .bonusBarFill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      transition: width 0.1s linear;
+    }
+
+    @media (max-width: 420px) {
+      #scoreMain { font-size: 20px; }
+      .bonusItem { padding: 6px 7px; }
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <header id="header">
-      <div id="title">SHEEPLY Tap</div>
+    <section id="headerCard">
+      <div>
+        <div id="title">SHEEPLY Clicker</div>
+        <div id="subtitle">Тапай по логотипу, копи клики и запускай бонусы.</div>
+      </div>
       <div id="scoreBlock">
-        <div id="scoreMain"><span id="scoreValue">0</span> овец</div>
-        <div class="pill">Лучший счёт: <span id="bestValue">0</span></div>
+        <div id="scoreMain"><span id="scoreValue">0</span> кликов</div>
+        <div class="pill">Всего за всё время: <span id="totalValue">0</span></div>
       </div>
-    </header>
+    </section>
 
-    <main id="gameCard">
-      <div id="sky"></div>
-      <div id="ground"></div>
-
-      <div id="sheepWrapper">
-        <!-- ВАЖНО: файл sheep.png должен лежать рядом с index.html -->
-        <img id="sheepSprite" src="sheep.png" alt="Sheeply" />
+    <section id="gameCard">
+      <div id="logoArea">
+        <div id="logoGlow"></div>
+        <!-- ВАЖНО: положи рядом с этим файлом картинку логотипа как "logo.png" -->
+        <img id="logo" src="logo.png" alt="Logo">
+        <div id="hint">Нажимай на логотип ✨</div>
       </div>
+    </section>
 
-      <div id="hint">Тапай по овечке 🐑, чтобы считать овец</div>
-    </main>
+    <section id="bonusCard">
+      <div id="bonusTitle">
+        <span>⚡ Бонусы</span>
+        <span>прокачивай клики, как в Hamster</span>
+      </div>
+      <div id="bonusList">
+        <div class="bonusItem" data-id="turbo">
+          <div class="bonusInfo">
+            <div class="bonusName">Turbo ×5</div>
+            <div class="bonusDesc">10 секунд каждый тап даёт ×5 кликов.</div>
+            <div class="bonusMeta">Стоимость: <span class="costValue">100</span> кликов · Время: 10 c</div>
+            <div class="bonusBar"><div class="bonusBarFill"></div></div>
+          </div>
+          <button class="bonusButton">Активировать</button>
+        </div>
+
+        <div class="bonusItem" data-id="auto">
+          <div class="bonusInfo">
+            <div class="bonusName">AutoTap</div>
+            <div class="bonusDesc">30 секунд овечка кликает сама (1 клик/сек).</div>
+            <div class="bonusMeta">Стоимость: <span class="costValue">250</span> кликов · Время: 30 c</div>
+            <div class="bonusBar"><div class="bonusBarFill"></div></div>
+          </div>
+          <button class="bonusButton">Активировать</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script>
+    const logoEl = document.getElementById("logo");
     const scoreEl = document.getElementById("scoreValue");
-    const bestEl  = document.getElementById("bestValue");
-    const sheepEl = document.getElementById("sheepSprite");
+    const totalEl = document.getElementById("totalValue");
     const hintEl  = document.getElementById("hint");
 
-    let score = 0;
-    let best  = 0;
+    // Состояние игры
+    let score = 0;          // текущие клики (то, чем платим за бонусы)
+    let totalClicks = 0;    // все клики за всё время
+    let multiplier = 1;
+    let autoPerSec = 0;
 
-    // читаем рекорд из localStorage
-    try {
-      const saved = localStorage.getItem("sheeply_sprite_best");
-      if (saved) {
-        best = parseInt(saved, 10) || 0;
-        bestEl.textContent = best;
+    // Бонусы
+    const bonuses = {
+      turbo: {
+        id: "turbo",
+        baseCost: 100,
+        duration: 10000,
+        activeUntil: 0,
+        level: 0
+      },
+      auto: {
+        id: "auto",
+        baseCost: 250,
+        duration: 30000,
+        activeUntil: 0,
+        level: 0
       }
+    };
+
+    const LS_TOTAL_KEY = "sheeply_logo_total";
+    const LS_SCORE_KEY = "sheeply_logo_current";
+
+    // Загружаем сохранения
+    try {
+      const savedTotal = localStorage.getItem(LS_TOTAL_KEY);
+      const savedScore = localStorage.getItem(LS_SCORE_KEY);
+      if (savedTotal) totalClicks = parseInt(savedTotal, 10) || 0;
+      if (savedScore) score = parseInt(savedScore, 10) || 0;
     } catch (_) {}
 
-    function updateScore() {
-      scoreEl.textContent = score;
-      bestEl.textContent  = best;
+    function saveState() {
+      try {
+        localStorage.setItem(LS_TOTAL_KEY, String(totalClicks));
+        localStorage.setItem(LS_SCORE_KEY, String(score));
+      } catch (_) {}
     }
 
-    function onSheepTap() {
+    function updateScoreViews() {
+      scoreEl.textContent = score.toLocaleString("ru-RU");
+      totalEl.textContent = totalClicks.toLocaleString("ru-RU");
+    }
+
+    function spawnFloatText(text, x, y) {
+      const el = document.createElement("div");
+      el.className = "float-text";
+      el.textContent = text;
+      el.style.left = x + "px";
+      el.style.top  = y + "px";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 700);
+    }
+
+    function handleClick(clientX, clientY) {
       hintEl.style.display = "none";
 
-      score += 1;
-      if (score > best) {
-        best = score;
-        try {
-          localStorage.setItem("sheeply_sprite_best", String(best));
-        } catch (_) {}
-      }
-      updateScore();
+      const gain = 1 * multiplier;
+      score += gain;
+      totalClicks += gain;
+      updateScoreViews();
+      saveState();
 
-      // анимация прыжка
-      sheepEl.classList.add("jump");
-      setTimeout(() => sheepEl.classList.remove("jump"), 90);
+      // лёгкая анимация
+      logoEl.classList.add("pressed");
+      setTimeout(() => logoEl.classList.remove("pressed"), 80);
+
+      // "+" текст
+      if (clientX !== undefined && clientY !== undefined) {
+        spawnFloatText("+" + gain, clientX, clientY - 20);
+      }
     }
 
-    sheepEl.addEventListener("click", onSheepTap);
-    sheepEl.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      onSheepTap();
-    }, { passive: false });
+    function getBonusElements(id) {
+      const item = document.querySelector(`.bonusItem[data-id="${id}"]`);
+      if (!item) return null;
+      const btn = item.querySelector(".bonusButton");
+      const barFill = item.querySelector(".bonusBarFill");
+      const costSpan = item.querySelector(".costValue");
+      return { item, btn, barFill, costSpan };
+    }
 
-    updateScore();
+    function getBonusCost(bonus) {
+      // Стоимость растёт с уровнем
+      return Math.floor(bonus.baseCost * Math.pow(1.6, bonus.level));
+    }
+
+    function updateBonusUI() {
+      const now = performance.now();
+      Object.values(bonuses).forEach(bonus => {
+        const els = getBonusElements(bonus.id);
+        if (!els) return;
+        const { btn, barFill, costSpan } = els;
+        const cost = getBonusCost(bonus);
+        costSpan.textContent = cost.toLocaleString("ru-RU");
+
+        const isActive = bonus.activeUntil > now;
+        if (isActive) {
+          btn.textContent = "Идёт…";
+          btn.disabled = true;
+          const totalDuration = bonus.duration;
+          const remaining = Math.max(0, bonus.activeUntil - now);
+          const filled = 100 - (remaining / totalDuration * 100);
+          barFill.style.width = filled + "%";
+        } else {
+          barFill.style.width = "0%";
+          btn.textContent = score >= cost ? "Активировать" : "Мало кликов";
+          btn.disabled = score < cost;
+        }
+      });
+    }
+
+    function activateBonus(id) {
+      const bonus = bonuses[id];
+      if (!bonus) return;
+
+      const cost = getBonusCost(bonus);
+      if (score < cost) return;
+
+      score -= cost;
+      bonus.level += 1;
+      const now = performance.now();
+      bonus.activeUntil = now + bonus.duration;
+
+      // Применяем эффект
+      if (id === "turbo") {
+        multiplier = 5;
+      } else if (id === "auto") {
+        autoPerSec += 1; // +1 автоклик/сек на время
+      }
+
+      updateScoreViews();
+      saveState();
+      updateBonusUI();
+    }
+
+    function updateBonuses() {
+      const now = performance.now();
+      let shouldResetMultiplier = true;
+      let activeAutoLevels = 0;
+
+      Object.values(bonuses).forEach(bonus => {
+        if (bonus.activeUntil > now) {
+          if (bonus.id === "turbo") {
+            shouldResetMultiplier = false;
+          }
+          if (bonus.id === "auto") {
+            activeAutoLevels += 1;
+          }
+        }
+      });
+
+      multiplier = shouldResetMultiplier ? 1 : 5;
+      autoPerSec = activeAutoLevels; // столько уровней авто — столько кликов/сек
+    }
+
+    // Таймер автокликов
+    setInterval(() => {
+      updateBonuses();
+      if (autoPerSec > 0) {
+        handleClick(); // без визуального +1
+      }
+    }, 1000);
+
+    // Таймер UI для прогресс-баров
+    setInterval(() => {
+      updateBonuses();
+      updateBonusUI();
+    }, 100);
+
+    // Обработчики кликов по логотипу
+    logoEl.addEventListener("click", (e) => {
+      handleClick(e.clientX, e.clientY);
+    });
+
+    logoEl.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      handleClick(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // Кнопки бонусов
+    document.querySelectorAll(".bonusItem").forEach(item => {
+      const id = item.getAttribute("data-id");
+      const btn = item.querySelector(".bonusButton");
+      btn.addEventListener("click", () => activateBonus(id));
+    });
+
+    // Старт
+    updateScoreViews();
+    updateBonusUI();
   </script>
 </body>
 </html>
