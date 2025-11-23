@@ -118,30 +118,78 @@
       gap: 4px;
       backdrop-filter: blur(12px);
       border: 1px solid rgba(191, 219, 254, 0.9);
+      z-index: 5;
     }
 
-    #footer {
-      flex-shrink: 0;
-      margin-top: 4px;
-      font-size: 11px;
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.92);
+      z-index: 10;
+      color: #f9fafb;
+    }
+
+    .overlay-inner {
+      width: 90%;
+      max-width: 320px;
+      padding: 16px 14px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      border: 1px solid rgba(148, 163, 184, 0.7);
       text-align: center;
-      color: #64748b;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
+    }
+
+    .overlay-inner h2 {
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .overlay-inner p {
+      font-size: 12px;
+      margin-bottom: 10px;
+      color: #e5e7eb;
+    }
+
+    .overlay-inner button {
+      margin-top: 6px;
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: "Inter", system-ui, sans-serif;
+      cursor: pointer;
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      color: #0f172a;
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.7);
+    }
+
+    .overlay-inner button:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 5px 14px rgba(59, 130, 246, 0.7);
+    }
+
+    .hidden {
+      display: none;
     }
 
     @media (max-width: 400px) {
       #title { font-size: 10px; }
       .pill { font-size: 8px; }
+      .overlay-inner h2 { font-size: 11px; }
     }
   </style>
 </head>
 <body>
-  <!-- Если нужно использовать Telegram WebApp API, просто добавь:
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  и используй window.Telegram.WebApp внутри JS -->
   <div id="app">
     <header id="header">
       <div id="title">SHEEPLY – COUNT SHEEP</div>
-      <div id="subtitle">Тапай по овечке, считай овец перед сном. Чем больше овец, тем темнее небо 🌙</div>
+      <div id="subtitle">Тапай по овечке на кровати. Каждые 100 кликов — новый фон. На 3000 овец SHEEPLY засыпает 🌙</div>
       <div id="stats">
         <span class="pill">ОВЦЫ: <span id="scoreValue">0</span></span>
         <span class="pill">РЕКОРД: <span id="bestValue">0</span></span>
@@ -152,9 +200,16 @@
     <main id="gameCard">
       <div id="canvasWrapper">
         <canvas id="gameCanvas"></canvas>
-        <div id="hint">Нажимай на овцу 🐑, чтобы добавить ещё одну в счёт</div>
+        <div id="hint">Нажимай на овцу 🐑, чтобы считать овец перед сном</div>
+
+        <div id="sleepOverlay" class="overlay hidden">
+          <div class="overlay-inner">
+            <h2>Ты уснул 😴</h2>
+            <p>Ты насчитал <span id="sleepScore">0</span> овец. SHEEPLY сладко спит на кровати.</p>
+            <button id="restartBtn">Счёт по новой</button>
+          </div>
+        </div>
       </div>
-      <div id="footer">Мягкая пиксельная ферма без таймеров и рекламы — только ты и овечки.</div>
     </main>
   </div>
 
@@ -166,8 +221,19 @@
     const bestEl = document.getElementById("bestValue");
     const comboEl = document.getElementById("comboValue");
     const hintEl = document.getElementById("hint");
+    const sleepOverlay = document.getElementById("sleepOverlay");
+    const sleepScoreEl = document.getElementById("sleepScore");
+    const restartBtn = document.getElementById("restartBtn");
 
     let w = 0, h = 0;
+
+    const backgrounds = [
+      { name: "Утро", skyTop: "#bde0ff", skyBottom: "#ffffff", stars: false },
+      { name: "День", skyTop: "#7dd3fc", skyBottom: "#e0f2ff", stars: false },
+      { name: "Закат", skyTop: "#fb7185", skyBottom: "#fecaca", stars: false },
+      { name: "Ночь", skyTop: "#1e293b", skyBottom: "#020617", stars: true },
+      { name: "Глубокая ночь", skyTop: "#020617", skyBottom: "#020617", stars: true }
+    ];
 
     const state = {
       score: 0,
@@ -177,15 +243,16 @@
       jumpDuration: 260,
       wavePhase: 0,
       sheep: { x: 0, y: 0, size: 80 },
-      zzz: [] // массив "Zzz"-частиц
+      bedTop: 0,
+      zzz: [],
+      lastTs: 0,
+      asleep: false
     };
 
-    // читаем рекорд
+    // рекорд
     try {
       const saved = localStorage.getItem("sheep_sleep_best");
-      if (saved) {
-        state.best = parseInt(saved, 10) || 0;
-      }
+      if (saved) state.best = parseInt(saved, 10) || 0;
     } catch (_) {}
     bestEl.textContent = state.best;
 
@@ -198,10 +265,12 @@
       w = rect.width;
       h = rect.height;
 
-      // позиция овцы немного выше центра
-      state.sheep.size = Math.min(w, h) * 0.23;
+      state.sheep.size = Math.min(w, h) * 0.25;
+      const unit = state.sheep.size / 8;
+
+      state.bedTop = h - unit * 5;          // верх кровати ближе к низу
+      state.sheep.y = state.bedTop - state.sheep.size * 0.5;
       state.sheep.x = w / 2;
-      state.sheep.y = h * 0.6;
     }
 
     window.addEventListener("resize", resizeCanvas);
@@ -212,8 +281,8 @@
       comboEl.textContent = state.combo;
     }
 
-    // логика "тап по овце"
     function handleTap(isAuto = false) {
+      if (state.asleep) return; // когда уснул — больше не считаем
       if (!isAuto) hintEl.style.display = "none";
 
       state.score += 1;
@@ -224,9 +293,18 @@
           localStorage.setItem("sheep_sleep_best", String(state.best));
         } catch (_) {}
       }
-      state.jumpTime = state.jumpDuration; // запускаем прыжок
+      state.jumpTime = state.jumpDuration;
       spawnZzz();
       updateScoreViews();
+
+      // смена фона каждые 100 кликов
+      // (просто используем другой индекс при отрисовке через score)
+      // режим "заснул" на 3000 овец
+      if (state.score >= 3000 && !state.asleep) {
+        state.asleep = true;
+        sleepScoreEl.textContent = state.score;
+        sleepOverlay.classList.remove("hidden");
+      }
     }
 
     function isPointInSheep(x, y) {
@@ -243,7 +321,6 @@
       if (isPointInSheep(x, y)) {
         handleTap(false);
       } else {
-        // промах по овце не наказывает, просто сбрасываем комбо нежно
         state.combo = 0;
         comboEl.textContent = "0";
       }
@@ -262,10 +339,20 @@
       }
     }, { passive: true });
 
-    // Zzz-частицы
+    restartBtn.addEventListener("click", () => {
+      state.score = 0;
+      state.combo = 0;
+      state.zzz = [];
+      state.asleep = false;
+      updateScoreViews();
+      sleepOverlay.classList.add("hidden");
+      hintEl.style.display = "block";
+    });
+
+    // Zzz частицы
     function spawnZzz() {
       state.zzz.push({
-        x: state.sheep.x + (Math.random() - 0.5) * state.sheep.size * 0.5,
+        x: state.sheep.x + (Math.random() - 0.5) * state.sheep.size * 0.4,
         y: state.sheep.y - state.sheep.size * 0.7,
         age: 0,
         life: 1200 + Math.random() * 600,
@@ -299,66 +386,66 @@
       ctx.restore();
     }
 
-    // Фон: небо + облака + градиент ночь/день
+    // Фон с кроватью
     function drawBackground() {
-      const progressToNight = Math.min(state.score / 40, 1); // чем больше овец, тем темнее до "ночи"
+      const bgIndex = Math.min(
+        Math.floor(state.score / 100),
+        backgrounds.length - 1
+      );
+      const theme = backgrounds[bgIndex];
 
-      const topColorDay = { r: 189, g: 224, b: 255 }; // #bde0ff
-      const topColorNight = { r: 15, g: 23, b: 42 };  // #0f172a
+      const skyHeight = state.bedTop - state.sheep.size * 0.2;
 
-      function lerp(a, b, t) { return a + (b - a) * t; }
-
-      const r = Math.round(lerp(topColorDay.r, topColorNight.r, progressToNight));
-      const g = Math.round(lerp(topColorDay.g, topColorNight.g, progressToNight));
-      const b = Math.round(lerp(topColorDay.b, topColorNight.b, progressToNight));
-
-      const skyTop = `rgb(${r},${g},${b})`;
-      const skyBottom = progressToNight < 0.7 ? "#ffffff" : "#cbd5f5";
-
-      const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, skyTop);
-      grad.addColorStop(1, skyBottom);
+      const grad = ctx.createLinearGradient(0, 0, 0, skyHeight);
+      grad.addColorStop(0, theme.skyTop);
+      grad.addColorStop(1, theme.skyBottom);
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, 0, w, skyHeight);
 
-      // простые пиксельные облака
-      const cloudColor = `rgba(255,255,255,${1 - progressToNight * 0.5})`;
-      ctx.fillStyle = cloudColor;
-
-      const t = state.wavePhase * 0.001;
-      drawPixelCloud(w * 0.2 + Math.sin(t) * 15, h * 0.2, 40);
-      drawPixelCloud(w * 0.7 + Math.cos(t * 0.7) * 25, h * 0.15, 50);
-
-      // луна появляется ближе к ночи
-      if (progressToNight > 0.3) {
-        const moonAlpha = (progressToNight - 0.3) / 0.7;
-        ctx.save();
-        ctx.globalAlpha = moonAlpha;
-        ctx.beginPath();
-        ctx.arc(w * 0.85, h * 0.15, 14, 0, Math.PI * 2);
-        ctx.fillStyle = "#fefce8";
-        ctx.fill();
-        ctx.restore();
+      // звёзды для ночных тем
+      if (theme.stars) {
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        for (let i = 0; i < 30; i++) {
+          const sx = (i * 73) % w;
+          const sy = (i * 41) % (skyHeight * 0.7);
+          ctx.fillRect(sx, sy, 1, 1);
+        }
       }
 
-      // травка/пол
-      ctx.fillStyle = "#e0f7ff";
-      ctx.fillRect(0, h * 0.7, w, h * 0.3);
-      ctx.fillStyle = "#ffffff";
-      for (let x = 0; x < w; x += 8) {
-        ctx.fillRect(x, h * 0.7 + ((x / 8) % 2) * 4, 8, 4);
+      // пиксельные облака (на дневных)
+      if (!theme.stars) {
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        const t = state.wavePhase * 0.001;
+        drawPixelCloud(w * 0.2 + Math.sin(t) * 18, skyHeight * 0.3, 40);
+        drawPixelCloud(w * 0.75 + Math.cos(t * 0.7) * 22, skyHeight * 0.18, 50);
       }
 
-      // забор
-      const fenceY = h * 0.7 - 20;
-      ctx.fillStyle = "#cbd5e1";
-      ctx.fillRect(0, fenceY, w, 6);
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillRect(0, fenceY + 6, w, 3);
-      ctx.fillStyle = "#e5e7eb";
-      for (let x = 10; x < w; x += 28) {
-        ctx.fillRect(x, fenceY - 18, 6, 24);
-      }
+      // кровать
+      const unit = state.sheep.size / 8;
+      const bedWidth = state.sheep.size * 3;
+      const bedX = state.sheep.x - bedWidth / 2;
+      const bedTop = state.bedTop;
+      const bedHeight = unit * 3;
+
+      // ножки кровати
+      ctx.fillStyle = "#92400e";
+      ctx.fillRect(bedX - unit * 0.4, bedTop + bedHeight, unit * 1.2, unit * 3);
+      ctx.fillRect(bedX + bedWidth - unit * 0.8, bedTop + bedHeight, unit * 1.2, unit * 3);
+
+      // рама
+      ctx.fillStyle = "#b45309";
+      ctx.fillRect(bedX - unit * 0.5, bedTop, bedWidth + unit, bedHeight);
+
+      // матрас
+      ctx.fillStyle = "#e0f2fe";
+      ctx.fillRect(bedX, bedTop - unit * 1.4, bedWidth, unit * 1.4);
+
+      ctx.fillStyle = "#bfdbfe";
+      ctx.fillRect(bedX, bedTop - unit * 1.4, bedWidth, unit * 0.4);
+
+      // спинка кровати
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(bedX - unit * 0.8, bedTop - unit * 5, unit * 1.6, unit * 5);
     }
 
     function drawPixelCloud(cx, cy, size) {
@@ -379,55 +466,72 @@
       });
     }
 
-    // Пиксельная овца
+    // Милее, детальнее овца с короткими лапками
     function drawSheep() {
       const s = state.sheep;
-      const baseSize = s.size;
-      const unit = baseSize / 8;
-
-      // легкий прыжок
+      const unit = s.size / 8;
       let offsetY = 0;
+
       if (state.jumpTime > 0) {
-        const t = 1 - state.jumpTime / state.jumpDuration; // 0..1
+        const t = 1 - state.jumpTime / state.jumpDuration;
         offsetY = -Math.sin(t * Math.PI) * unit * 2.5;
       }
 
       const cx = s.x;
       const cy = s.y + offsetY;
 
-      // тень
+      // тень на кровати
       ctx.save();
       ctx.globalAlpha = 0.3;
       ctx.beginPath();
-      ctx.ellipse(cx, cy + unit * 4.5, unit * 4, unit * 1.7, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "#94a3b8";
+      ctx.ellipse(cx, cy + unit * 3.5, unit * 3, unit * 1.3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#64748b";
       ctx.fill();
       ctx.restore();
 
-      // тело
+      // тело (много пикселей, чтобы пушисто)
       ctx.fillStyle = "#f9fafb";
       ctx.fillRect(cx - unit * 3, cy - unit * 2, unit * 6, unit * 4);
+      ctx.fillRect(cx - unit * 2.8, cy - unit * 2.6, unit * 5.6, unit * 1);
+      ctx.fillRect(cx - unit * 2.5, cy + unit * 2, unit * 5, unit * 1);
       ctx.fillStyle = "#e5e7eb";
-      ctx.fillRect(cx - unit * 3, cy - unit, unit, unit * 2);
-      ctx.fillRect(cx + unit * 2, cy - unit, unit, unit * 2);
-      ctx.fillRect(cx - unit * 2, cy - unit * 2.4, unit * 4, unit * 1.2);
+      ctx.fillRect(cx - unit * 3, cy - unit * 0.5, unit, unit * 1.8);
+      ctx.fillRect(cx + unit * 2, cy - unit * 0.5, unit, unit * 1.8);
 
       // голова
       ctx.fillStyle = "#111827";
-      ctx.fillRect(cx + unit * 3, cy - unit * 1.5, unit * 2.1, unit * 3);
-      ctx.fillStyle = "#e5e7eb";
-      ctx.fillRect(cx + unit * 3, cy - unit, unit * 1.2, unit * 2);
+      ctx.fillRect(cx + unit * 2.6, cy - unit * 1.2, unit * 2, unit * 3);
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(cx + unit * 2.6, cy - unit * 0.6, unit * 1.2, unit * 1.8);
+
+      // уши
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(cx + unit * 2.6, cy - unit * 1.6, unit * 0.8, unit * 0.8);
+      ctx.fillRect(cx + unit * 3.8, cy - unit * 1.5, unit * 0.8, unit * 0.9);
 
       // глаза
       ctx.fillStyle = "#000000";
-      ctx.fillRect(cx + unit * 3.3, cy - unit * 0.6, unit * 0.6, unit * 0.6);
-      ctx.fillRect(cx + unit * 3.9, cy - unit * 0.6, unit * 0.6, unit * 0.6);
+      ctx.fillRect(cx + unit * 2.9, cy - unit * 0.3, unit * 0.6, unit * 0.6);
+      ctx.fillRect(cx + unit * 3.6, cy - unit * 0.3, unit * 0.6, unit * 0.6);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(cx + unit * 3, cy - unit * 0.3, unit * 0.3, unit * 0.3);
+      ctx.fillRect(cx + unit * 3.7, cy - unit * 0.3, unit * 0.3, unit * 0.3);
 
-      // ножки
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(cx - unit * 2.2, cy + unit * 2, unit * 0.9, unit * 2.4);
-      ctx.fillRect(cx - unit * 0.5, cy + unit * 2, unit * 0.9, unit * 2.4);
-      ctx.fillRect(cx + unit * 1.2, cy + unit * 2, unit * 0.9, unit * 2.4);
+      // щёчки
+      ctx.fillStyle = "#fecaca";
+      ctx.fillRect(cx + unit * 2.7, cy + unit * 0.6, unit * 0.6, unit * 0.5);
+      ctx.fillRect(cx + unit * 3.7, cy + unit * 0.6, unit * 0.6, unit * 0.5);
+
+      // укороченные ножки
+      ctx.fillStyle = "#020617";
+      const legH = unit * 1.5;
+      ctx.fillRect(cx - unit * 2, cy + unit * 2, unit * 0.9, legH);
+      ctx.fillRect(cx,       cy + unit * 2, unit * 0.9, legH);
+      ctx.fillRect(cx + unit * 2, cy + unit * 2, unit * 0.9, legH);
+
+      // хвост
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(cx - unit * 3.4, cy - unit * 0.4, unit * 0.8, unit * 1.2);
     }
 
     function step(timestamp) {
