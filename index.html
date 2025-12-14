@@ -1,503 +1,773 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>SHEEPLY Clicker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <meta name="theme-color" content="#bfdbfe" />
-  <!-- Современный шрифт -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Neon Tap — Telegram WebApp</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
+    :root{
+      --bg0:#070A12;
+      --bg1:#0A0F22;
+      --glass: rgba(255,255,255,.08);
+      --glass2: rgba(255,255,255,.12);
+      --txt: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --good:#62f6ff;
+      --hot:#ff4fd8;
+      --warn:#ffd166;
+      --bad:#ff3b5c;
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --r: 24px;
     }
-    body {
-      font-family: "Baloo 2", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #e0f2ff, #bfdbfe);
-      color: #0f172a;
-      overflow: hidden;
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:radial-gradient(1200px 700px at 20% 10%, #1a1f46 0%, rgba(26,31,70,0) 55%),
+                             radial-gradient(900px 600px at 85% 20%, #3d1451 0%, rgba(61,20,81,0) 55%),
+                             linear-gradient(180deg, var(--bg0), var(--bg1));
+              color:var(--txt); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; overflow:hidden;}
+    a{color:inherit}
+    .wrap{height:100%;display:grid;place-items:center;padding:14px;}
+    .app{
+      width:min(520px, 100%);
+      height:min(900px, 100%);
+      border-radius: clamp(18px, 3vw, 30px);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      position:relative;
     }
-    #app {
-      max-width: 540px;
-      margin: 0 auto;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      gap: 10px;
+    canvas#fx{position:absolute;inset:0;z-index:1;}
+    .ui{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;}
+    header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px 10px;
+      gap:10px;
+    }
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{
+      width:40px;height:40px;border-radius:14px;
+      background: radial-gradient(circle at 30% 30%, rgba(98,246,255,.9), rgba(255,79,216,.85));
+      box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 18px 40px rgba(255,79,216,.18);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:after{
+      content:""; position:absolute; inset:-30%;
+      background: conic-gradient(from 180deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));
+      animation: spin 3.2s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .title{line-height:1.05}
+    .title b{display:block;font-size:14px;letter-spacing:.2px}
+    .title span{display:block;font-size:12px;color:var(--muted)}
+    .pill{
+      display:flex;gap:10px;align-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      padding:8px 10px;
+    }
+    .mini{
+      display:flex;flex-direction:column;gap:2px;min-width:72px;text-align:right
+    }
+    .mini .k{font-size:11px;color:var(--muted)}
+    .mini .v{font-weight:700;font-size:14px}
+    .btn{
+      border:none;cursor:pointer;color:var(--txt);
+      padding:10px 12px;border-radius:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 30px rgba(0,0,0,.2);
+      transition: transform .08s ease, filter .15s ease;
+      user-select:none;
+    }
+    .btn:active{transform: translateY(1px) scale(.99); filter:brightness(1.05);}
+    .btn.primary{
+      background: radial-gradient(circle at 30% 20%, rgba(98,246,255,.35), rgba(255,79,216,.25)) ,
+                  linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+      border-color: rgba(98,246,255,.25);
+    }
+    .content{flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;}
+    .card{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r);
+      box-shadow: 0 14px 40px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .stats{
+      display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;
+    }
+    .stat{
+      background: rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding:10px;
+    }
+    .stat .k{font-size:11px;color:var(--muted)}
+    .stat .v{font-size:18px;font-weight:800;margin-top:4px}
+    .bar{
+      height:8px;border-radius:999px;
+      background: rgba(255,255,255,.07); margin-top:8px; overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .bar > i{display:block;height:100%;width:30%;
+      background: linear-gradient(90deg, rgba(98,246,255,.9), rgba(255,79,216,.9));
+      box-shadow: 0 0 20px rgba(255,79,216,.35);
+    }
+    .arenaWrap{flex:1; display:flex; flex-direction:column; gap:12px;}
+    .arena{
+      position:relative;
+      height: clamp(360px, 54vh, 560px);
+      border-radius: var(--r);
+      background:
+        radial-gradient(600px 300px at 50% 10%, rgba(98,246,255,.14), rgba(98,246,255,0) 60%),
+        radial-gradient(600px 300px at 40% 90%, rgba(255,79,216,.12), rgba(255,79,216,0) 60%),
+        linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.10));
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+    .grid{
+      position:absolute; inset:-20%;
+      background-image:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,0) 2px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 30px 30px, 90px 90px, 90px 90px;
+      transform: rotate(8deg);
+      opacity:.35;
+      filter: blur(.2px);
+      pointer-events:none;
+    }
+    .hint{
+      position:absolute; left:14px; right:14px; top:12px;
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      font-size:12px; color:var(--muted);
+      pointer-events:none;
+    }
+    .hint b{color:var(--txt)}
+    .ring{
+      position:absolute; width:112px; height:112px;
+      border-radius: 999px;
+      display:grid; place-items:center;
+      transform: translate(-50%,-50%);
+      cursor:pointer;
+      user-select:none;
+      will-change: transform, opacity;
+      filter: drop-shadow(0 14px 26px rgba(0,0,0,.35));
+    }
+    .ring .core{
+      width:70px;height:70px;border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.40), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.20);
+      box-shadow:
+        0 0 0 10px rgba(98,246,255,.10),
+        0 0 0 20px rgba(255,79,216,.07),
+        0 0 40px rgba(98,246,255,.22),
+        inset 0 0 20px rgba(255,255,255,.12);
+      display:grid;place-items:center;
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+    .ring.good .core{box-shadow:
+        0 0 0 10px rgba(98,246,255,.10),
+        0 0 0 20px rgba(98,246,255,.06),
+        0 0 40px rgba(98,246,255,.28),
+        inset 0 0 20px rgba(255,255,255,.12);
+    }
+    .ring.hot .core{box-shadow:
+        0 0 0 10px rgba(255,79,216,.10),
+        0 0 0 20px rgba(255,79,216,.06),
+        0 0 44px rgba(255,79,216,.26),
+        inset 0 0 20px rgba(255,255,255,.12);
+    }
+    .ring.warn .core{box-shadow:
+        0 0 0 10px rgba(255,209,102,.11),
+        0 0 0 20px rgba(255,209,102,.07),
+        0 0 40px rgba(255,209,102,.20),
+        inset 0 0 20px rgba(255,255,255,.12);
+    }
+    .ring.bad .core{
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), rgba(255,255,255,.05));
+      border-color: rgba(255,255,255,.16);
+      box-shadow:
+        0 0 0 10px rgba(255,59,92,.12),
+        0 0 0 20px rgba(255,59,92,.07),
+        0 0 44px rgba(255,59,92,.22),
+        inset 0 0 20px rgba(255,255,255,.10);
     }
 
-    /* HEADER */
-    #headerCard {
-      flex-shrink: 0;
-      border-radius: 20px;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224,242,254,0.9));
-      box-shadow: 0 14px 35px rgba(15,23,42,0.25);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+    .footer{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      padding:12px;
     }
-    #title {
-      font-size: 18px;
-      font-weight: 700;
+    .footer .left{display:flex;gap:10px;align-items:center}
+    .toggle{
+      display:flex;align-items:center;gap:8px;
+      font-size:12px;color:var(--muted);
+      padding:8px 10px;border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      user-select:none;
     }
-    #subtitle {
-      font-size: 11px;
-      color: #64748b;
+    .dot{
+      width:10px;height:10px;border-radius:999px;background: rgba(255,255,255,.25);
+      box-shadow: 0 0 16px rgba(98,246,255,.0);
+      transition: all .2s ease;
     }
-    #scoreBlock {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-      font-size: 11px;
+    .toggle.on .dot{background: rgba(98,246,255,.85); box-shadow: 0 0 16px rgba(98,246,255,.35);}
+    .overlay{
+      position:absolute; inset:0; z-index:3;
+      display:grid; place-items:center;
+      background: radial-gradient(700px 450px at 50% 25%, rgba(255,255,255,.10), rgba(0,0,0,.32) 65%),
+                  rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+      padding:18px;
     }
-    #scoreMain {
-      font-size: 22px;
+    .modal{
+      width:min(420px, 100%);
+      border-radius: 26px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadow);
+      padding:16px;
     }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 9px;
-      border-radius: 999px;
-      background: rgba(148,163,184,0.18);
-      font-size: 10px;
-    }
-
-    /* GAME */
-    #gameCard {
-      flex: 1;
-      min-height: 0;
-      border-radius: 24px;
-      background: radial-gradient(circle at top, #e0f2ff, #ffffff);
-      box-shadow: 0 18px 40px rgba(15,23,42,0.45);
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      position: relative;
-      overflow: hidden;
-    }
-    #logoArea {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    #logoGlow {
-      position: absolute;
-      width: 70%;
-      max-width: 280px;
-      aspect-ratio: 1/1;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(191,219,254,0.9) 0%, rgba(191,219,254,0) 60%);
-      filter: blur(4px);
-      z-index: 0;
-    }
-    #logo {
-      position: relative;
-      z-index: 1;
-      width: 65%;
-      max-width: 260px;
-      height: auto;
-      cursor: pointer;
-      user-select: none;
-      -webkit-user-drag: none;
-      filter: drop-shadow(0 18px 35px rgba(15,23,42,0.4));
-      transform-origin: center bottom;
-      transition: transform 0.07s ease-out;
-    }
-    #logo.pressed {
-      transform: translateY(-10px) scale(1.03);
-    }
-    #hint {
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      background: rgba(15,23,42,0.65);
-      color: #f9fafb;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(191,219,254,0.9);
-      z-index: 2;
-    }
-
-    /* FLOATING +1 */
-    .float-text {
-      position: absolute;
-      font-size: 14px;
-      color: #0f766e;
-      pointer-events: none;
-      animation: floatUp 700ms ease-out forwards;
-      text-shadow: 0 1px 0 #e0f2fe;
-    }
-    @keyframes floatUp {
-      from { transform: translate(-50%, 0); opacity: 1; }
-      to   { transform: translate(-50%, -40px); opacity: 0; }
-    }
-
-    /* BONUS CARD */
-    #bonusCard {
-      flex-shrink: 0;
-      border-radius: 20px;
-      padding: 10px 12px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219,234,254,0.9));
-      box-shadow: 0 12px 30px rgba(15,23,42,0.35);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    #bonusTitle {
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #bonusTitle span:last-child {
-      font-size: 11px;
-      color: #64748b;
-    }
-    #bonusList {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .bonusItem {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.9);
-      box-shadow: 0 5px 14px rgba(148,163,184,0.65);
-    }
-    .bonusInfo {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 11px;
-    }
-    .bonusName {
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .bonusDesc {
-      font-size: 10px;
-      color: #64748b;
-    }
-    .bonusMeta {
-      font-size: 10px;
-      color: #0f172a;
-    }
-    .bonusButton {
-      border: none;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #022c22;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 8px 18px rgba(56,189,248,0.7);
-      white-space: nowrap;
-    }
-    .bonusButton[disabled] {
-      opacity: 0.45;
-      box-shadow: none;
-      cursor: default;
-    }
-    .bonusBar {
-      width: 100%;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(226,232,240,0.9);
-      overflow: hidden;
-      margin-top: 3px;
-    }
-    .bonusBarFill {
-      height: 100%;
-      width: 0%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #38bdf8, #22c55e);
-      transition: width 0.1s linear;
-    }
-
-    @media (max-width: 420px) {
-      #scoreMain { font-size: 20px; }
-      .bonusItem { padding: 6px 7px; }
+    .modal h1{font-size:18px;margin:0 0 6px}
+    .modal p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.35}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row .btn{flex:1}
+    .tiny{font-size:11px;color:rgba(255,255,255,.50);margin-top:10px}
+    .shake{animation: shake .18s linear 1}
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      25%{transform:translateX(-3px)}
+      50%{transform:translateX(3px)}
+      75%{transform:translateX(-2px)}
+      100%{transform:translateX(0)}
     }
   </style>
 </head>
 <body>
-  <div id="app">
-    <section id="headerCard">
-      <div>
-        <div id="title">SHEEPLY Clicker</div>
-        <div id="subtitle">Тапай по логотипу, копи клики и запускай бонусы.</div>
-      </div>
-      <div id="scoreBlock">
-        <div id="scoreMain"><span id="scoreValue">0</span> кликов</div>
-        <div class="pill">Всего за всё время: <span id="totalValue">0</span></div>
-      </div>
-    </section>
+<div class="wrap">
+  <div class="app" id="app">
+    <canvas id="fx"></canvas>
 
-    <section id="gameCard">
-      <div id="logoArea">
-        <div id="logoGlow"></div>
-        <!-- ВАЖНО: положи рядом с этим файлом картинку логотипа как "logo.png" -->
-        <img id="logo" src="logo.png" alt="Logo">
-        <div id="hint">Нажимай на логотип ✨</div>
-      </div>
-    </section>
-
-    <section id="bonusCard">
-      <div id="bonusTitle">
-        <span>⚡ Бонусы</span>
-        <span>прокачивай клики, как в Hamster</span>
-      </div>
-      <div id="bonusList">
-        <div class="bonusItem" data-id="turbo">
-          <div class="bonusInfo">
-            <div class="bonusName">Turbo ×5</div>
-            <div class="bonusDesc">10 секунд каждый тап даёт ×5 кликов.</div>
-            <div class="bonusMeta">Стоимость: <span class="costValue">100</span> кликов · Время: 10 c</div>
-            <div class="bonusBar"><div class="bonusBarFill"></div></div>
+    <div class="ui">
+      <header>
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div class="title">
+            <b>Neon Tap</b>
+            <span>реакция • комбо • бонусы</span>
           </div>
-          <button class="bonusButton">Активировать</button>
         </div>
 
-        <div class="bonusItem" data-id="auto">
-          <div class="bonusInfo">
-            <div class="bonusName">AutoTap</div>
-            <div class="bonusDesc">30 секунд овечка кликает сама (1 клик/сек).</div>
-            <div class="bonusMeta">Стоимость: <span class="costValue">250</span> кликов · Время: 30 c</div>
-            <div class="bonusBar"><div class="bonusBarFill"></div></div>
+        <div class="pill">
+          <div class="mini">
+            <div class="k">Рекорд</div>
+            <div class="v" id="best">0</div>
           </div>
-          <button class="bonusButton">Активировать</button>
+          <button class="btn" id="shareBtn" title="Отправить результат боту">📤</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="card">
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Счёт</div>
+              <div class="v" id="score">0</div>
+              <div class="bar" title="супер-режим"><i id="meter"></i></div>
+            </div>
+            <div class="stat">
+              <div class="k">Комбо</div>
+              <div class="v" id="combo">x1</div>
+              <div class="k" id="comboHint" style="margin-top:6px">не промахнись!</div>
+            </div>
+            <div class="stat">
+              <div class="k">Время</div>
+              <div class="v"><span id="time">30.0</span>s</div>
+              <div class="k" id="mode">Режим: Classic</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arenaWrap">
+          <div class="arena card" id="arena">
+            <div class="grid"></div>
+            <div class="hint">
+              <div>Тапай по <b>неону</b>. 🔥 = больше очков, 💥 = минус.</div>
+              <div><b>Space</b> старт/пауза</div>
+            </div>
+          </div>
+
+          <div class="card footer">
+            <div class="left">
+              <div class="toggle" id="soundToggle"><span class="dot"></span> звук</div>
+              <div class="toggle on" id="hardToggle"><span class="dot"></span> хардкор</div>
+            </div>
+            <button class="btn primary" id="startBtn">▶ Играть</button>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <h1>Neon Tap</h1>
+        <p>30 секунд. Лови цели: <b>🔥</b> даёт больше очков, <b>⭐</b> заряжает супер-режим, <b>💥</b> сбивает комбо.</p>
+        <div class="row">
+          <button class="btn primary" id="playBtn">Играть</button>
+          <button class="btn" id="howBtn">Как играть</button>
+        </div>
+        <div class="tiny">Под Telegram WebApp: результат отправляется кнопкой 📤 или в конце раунда.</div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <script>
-    const logoEl = document.getElementById("logo");
-    const scoreEl = document.getElementById("scoreValue");
-    const totalEl = document.getElementById("totalValue");
-    const hintEl  = document.getElementById("hint");
+<script>
+(() => {
+  // Telegram WebApp (без ошибок и в браузере)
+  const TG = window.Telegram?.WebApp;
+  try { TG?.ready(); TG?.expand(); } catch(e){}
 
-    // Состояние игры
-    let score = 0;          // текущие клики (то, чем платим за бонусы)
-    let totalClicks = 0;    // все клики за всё время
-    let multiplier = 1;
-    let autoPerSec = 0;
+  const els = {
+    app: document.getElementById('app'),
+    arena: document.getElementById('arena'),
+    overlay: document.getElementById('overlay'),
+    playBtn: document.getElementById('playBtn'),
+    howBtn: document.getElementById('howBtn'),
+    startBtn: document.getElementById('startBtn'),
+    shareBtn: document.getElementById('shareBtn'),
+    score: document.getElementById('score'),
+    best: document.getElementById('best'),
+    combo: document.getElementById('combo'),
+    comboHint: document.getElementById('comboHint'),
+    time: document.getElementById('time'),
+    meter: document.getElementById('meter'),
+    mode: document.getElementById('mode'),
+    soundToggle: document.getElementById('soundToggle'),
+    hardToggle: document.getElementById('hardToggle'),
+    fx: document.getElementById('fx'),
+  };
 
-    // Бонусы
-    const bonuses = {
-      turbo: {
-        id: "turbo",
-        baseCost: 100,
-        duration: 10000,
-        activeUntil: 0,
-        level: 0
-      },
-      auto: {
-        id: "auto",
-        baseCost: 250,
-        duration: 30000,
-        activeUntil: 0,
-        level: 0
-      }
-    };
+  // ---------- State ----------
+  const LS_BEST = 'neon_tap_best_v1';
+  let best = +localStorage.getItem(LS_BEST) || 0;
 
-    const LS_TOTAL_KEY = "sheeply_logo_total";
-    const LS_SCORE_KEY = "sheeply_logo_current";
+  let running = false;
+  let paused = false;
+  let tLeft = 30.0;
 
-    // Загружаем сохранения
-    try {
-      const savedTotal = localStorage.getItem(LS_TOTAL_KEY);
-      const savedScore = localStorage.getItem(LS_SCORE_KEY);
-      if (savedTotal) totalClicks = parseInt(savedTotal, 10) || 0;
-      if (savedScore) score = parseInt(savedScore, 10) || 0;
-    } catch (_) {}
+  let score = 0;
+  let combo = 1;
+  let streak = 0;
 
-    function saveState() {
-      try {
-        localStorage.setItem(LS_TOTAL_KEY, String(totalClicks));
-        localStorage.setItem(LS_SCORE_KEY, String(score));
-      } catch (_) {}
-    }
+  let meter = 0;          // 0..100
+  let superMode = false;  // when meter full
+  let hard = true;
+  let sound = false;
 
-    function updateScoreViews() {
-      scoreEl.textContent = score.toLocaleString("ru-RU");
-      totalEl.textContent = totalClicks.toLocaleString("ru-RU");
-    }
+  let spawnTimer = 0;
+  let targetCount = 0;
 
-    function spawnFloatText(text, x, y) {
-      const el = document.createElement("div");
-      el.className = "float-text";
-      el.textContent = text;
-      el.style.left = x + "px";
-      el.style.top  = y + "px";
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 700);
-    }
+  // ---------- Audio (без файлов) ----------
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let ctx = null;
+  function beep(freq, dur=0.06, type='sine', gain=0.035){
+    if(!sound) return;
+    try{
+      ctx ||= new AudioCtx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.value = gain;
+      o.connect(g); g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + dur);
+    }catch(e){}
+  }
 
-    function handleClick(clientX, clientY) {
-      hintEl.style.display = "none";
+  // ---------- Particles FX ----------
+  const c = els.fx;
+  const g2 = c.getContext('2d');
+  const P = [];
+  let w=0,h=0,dpr=1;
 
-      const gain = 1 * multiplier;
-      score += gain;
-      totalClicks += gain;
-      updateScoreViews();
-      saveState();
+  function resize(){
+    const r = els.app.getBoundingClientRect();
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    w = Math.floor(r.width * dpr);
+    h = Math.floor(r.height * dpr);
+    c.width = w; c.height = h;
+    c.style.width = r.width + 'px';
+    c.style.height = r.height + 'px';
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
 
-      // лёгкая анимация
-      logoEl.classList.add("pressed");
-      setTimeout(() => logoEl.classList.remove("pressed"), 80);
-
-      // "+" текст
-      if (clientX !== undefined && clientY !== undefined) {
-        spawnFloatText("+" + gain, clientX, clientY - 20);
-      }
-    }
-
-    function getBonusElements(id) {
-      const item = document.querySelector(`.bonusItem[data-id="${id}"]`);
-      if (!item) return null;
-      const btn = item.querySelector(".bonusButton");
-      const barFill = item.querySelector(".bonusBarFill");
-      const costSpan = item.querySelector(".costValue");
-      return { item, btn, barFill, costSpan };
-    }
-
-    function getBonusCost(bonus) {
-      // Стоимость растёт с уровнем
-      return Math.floor(bonus.baseCost * Math.pow(1.6, bonus.level));
-    }
-
-    function updateBonusUI() {
-      const now = performance.now();
-      Object.values(bonuses).forEach(bonus => {
-        const els = getBonusElements(bonus.id);
-        if (!els) return;
-        const { btn, barFill, costSpan } = els;
-        const cost = getBonusCost(bonus);
-        costSpan.textContent = cost.toLocaleString("ru-RU");
-
-        const isActive = bonus.activeUntil > now;
-        if (isActive) {
-          btn.textContent = "Идёт…";
-          btn.disabled = true;
-          const totalDuration = bonus.duration;
-          const remaining = Math.max(0, bonus.activeUntil - now);
-          const filled = 100 - (remaining / totalDuration * 100);
-          barFill.style.width = filled + "%";
-        } else {
-          barFill.style.width = "0%";
-          btn.textContent = score >= cost ? "Активировать" : "Мало кликов";
-          btn.disabled = score < cost;
-        }
+  function burst(x,y,n=18, power=1){
+    for(let i=0;i<n;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = (Math.random()*2.6+1.1) * power;
+      P.push({
+        x,y,
+        vx: Math.cos(a)*sp,
+        vy: Math.sin(a)*sp,
+        life: 1,
+        r: Math.random()*3.2+1.2,
+        hot: Math.random() > .55
       });
     }
+  }
 
-    function activateBonus(id) {
-      const bonus = bonuses[id];
-      if (!bonus) return;
+  let last = performance.now();
+  function tick(now){
+    const dt = Math.min(0.033, (now-last)/1000);
+    last = now;
 
-      const cost = getBonusCost(bonus);
-      if (score < cost) return;
+    // fade
+    g2.clearRect(0,0,w,h);
+    g2.globalAlpha = 1;
 
-      score -= cost;
-      bonus.level += 1;
-      const now = performance.now();
-      bonus.activeUntil = now + bonus.duration;
+    // particles
+    for(let i=P.length-1;i>=0;i--){
+      const p = P[i];
+      p.life -= dt*1.55;
+      p.x += p.vx*60*dt;
+      p.y += p.vy*60*dt;
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      p.vy += 0.12;
 
-      // Применяем эффект
-      if (id === "turbo") {
-        multiplier = 5;
-      } else if (id === "auto") {
-        autoPerSec += 1; // +1 автоклик/сек на время
-      }
+      if(p.life<=0){ P.splice(i,1); continue; }
 
-      updateScoreViews();
-      saveState();
-      updateBonusUI();
+      const a = Math.max(0, p.life);
+      g2.globalAlpha = a;
+      g2.beginPath();
+      g2.arc(p.x, p.y, p.r*dpr, 0, Math.PI*2);
+      g2.fillStyle = p.hot ? 'rgba(255,79,216,.9)' : 'rgba(98,246,255,.9)';
+      g2.shadowBlur = 16*dpr;
+      g2.shadowColor = p.hot ? 'rgba(255,79,216,.7)' : 'rgba(98,246,255,.7)';
+      g2.fill();
+      g2.shadowBlur = 0;
     }
 
-    function updateBonuses() {
-      const now = performance.now();
-      let shouldResetMultiplier = true;
-      let activeAutoLevels = 0;
+    // game clock
+    if(running && !paused){
+      tLeft -= dt;
+      if(tLeft <= 0){
+        tLeft = 0;
+        endGame();
+      }
+      els.time.textContent = tLeft.toFixed(1);
 
-      Object.values(bonuses).forEach(bonus => {
-        if (bonus.activeUntil > now) {
-          if (bonus.id === "turbo") {
-            shouldResetMultiplier = false;
-          }
-          if (bonus.id === "auto") {
-            activeAutoLevels += 1;
-          }
-        }
-      });
-
-      multiplier = shouldResetMultiplier ? 1 : 5;
-      autoPerSec = activeAutoLevels; // столько уровней авто — столько кликов/сек
+      spawnTimer -= dt;
+      if(spawnTimer <= 0){
+        spawnTarget();
+        const base = hard ? 0.62 : 0.78;
+        spawnTimer = base * (superMode ? 0.75 : 1) * (0.92 + Math.random()*0.26);
+      }
     }
 
-    // Таймер автокликов
-    setInterval(() => {
-      updateBonuses();
-      if (autoPerSec > 0) {
-        handleClick(); // без визуального +1
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ---------- Targets ----------
+  function rand(min,max){ return min + Math.random()*(max-min); }
+
+  function spawnTarget(){
+    // ограничим количество на поле
+    const maxOnField = hard ? 4 : 5;
+    const current = els.arena.querySelectorAll('.ring').length;
+    if(current >= maxOnField) return;
+
+    const rect = els.arena.getBoundingClientRect();
+    const pad = 70;
+    const x = rand(pad, rect.width - pad);
+    const y = rand(90, rect.height - pad);
+
+    // типы целей
+    // good: +, hot: ++, warn: заряд, bad: штраф
+    const r = Math.random();
+    let type = 'good', label = '＋', pts = 10, meterGain = 10;
+    if(r > 0.86) { type='bad'; label='💥'; pts = -18; meterGain = -22; }
+    else if(r > 0.70){ type='hot'; label='🔥'; pts = 18; meterGain = 14; }
+    else if(r > 0.56){ type='warn'; label='⭐'; pts = 12; meterGain = 26; }
+
+    // в супер-режиме больше "горячих"
+    if(superMode && Math.random() > 0.62 && type !== 'bad'){
+      type='hot'; label='🔥'; pts = 22; meterGain = 12;
+    }
+
+    const el = document.createElement('div');
+    el.className = `ring ${type}`;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.opacity = '0';
+    el.innerHTML = `<div class="core">${label}</div>`;
+    els.arena.appendChild(el);
+
+    // анимация появления + таймер исчезновения
+    const born = performance.now();
+    const life = hard ? rand(0.78, 1.10) : rand(0.95, 1.25);
+    const scale = rand(0.92, 1.12);
+
+    function anim(){
+      const t = (performance.now()-born)/1000;
+      const p = Math.min(1, t/0.10);
+      el.style.opacity = String(p);
+      el.style.transform = `translate(-50%,-50%) scale(${(0.86 + p*0.14)*scale})`;
+
+      if(!running || paused){ requestAnimationFrame(anim); return; }
+
+      if(t > life){
+        // промах — сброс комбо
+        miss(el, x, y);
+        return;
       }
-    }, 1000);
+      requestAnimationFrame(anim);
+    }
+    requestAnimationFrame(anim);
 
-    // Таймер UI для прогресс-баров
-    setInterval(() => {
-      updateBonuses();
-      updateBonusUI();
-    }, 100);
+    el.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      hit(type, pts, meterGain, el, x, y);
+    }, {passive:false});
+  }
 
-    // Обработчики кликов по логотипу
-    logoEl.addEventListener("click", (e) => {
-      handleClick(e.clientX, e.clientY);
+  function miss(el, x, y){
+    if(el?.isConnected) el.remove();
+    combo = 1; streak = 0;
+    els.combo.textContent = 'x' + combo;
+    els.comboHint.textContent = 'мимо… комбо сброшено';
+    els.app.classList.add('shake');
+    setTimeout(()=>els.app.classList.remove('shake'), 180);
+    beep(120, 0.06, 'square', 0.03);
+    burst(toAppX(x), toAppY(y), 14, 0.9);
+  }
+
+  function hit(type, pts, meterGain, el, x, y){
+    if(!running || paused) return;
+    if(el?.isConnected) el.remove();
+
+    // комбо логика
+    if(type === 'bad'){
+      combo = 1; streak = 0;
+      els.comboHint.textContent = '💥 штраф!';
+      beep(150, 0.05, 'square', 0.04);
+    } else {
+      streak++;
+      if(streak % 3 === 0) combo = Math.min(9, combo+1);
+      els.comboHint.textContent = streak >= 6 ? '🔥 отлично!' : 'держи темп';
+      beep(520 + combo*30, 0.05, 'sine', 0.03);
+    }
+
+    // очки
+    const mult = superMode ? 2 : 1;
+    const add = Math.round(pts * combo * mult);
+    score += add;
+    score = Math.max(0, score);
+    els.score.textContent = score;
+
+    // супер-метр
+    meter = Math.max(0, Math.min(100, meter + meterGain));
+    els.meter.style.width = meter + '%';
+
+    if(meter >= 100 && !superMode){
+      superMode = true;
+      els.mode.textContent = 'Режим: SUPER ✨';
+      burst(toAppX(x), toAppY(y), 30, 1.4);
+      beep(880, 0.10, 'triangle', 0.05);
+      setTimeout(() => {
+        // супер режим длится немного и плавно уходит
+        superMode = false;
+        meter = 0;
+        els.meter.style.width = '0%';
+        els.mode.textContent = hard ? 'Режим: Hardcore' : 'Режим: Classic';
+      }, 5200);
+    }
+
+    els.combo.textContent = 'x' + combo;
+
+    // fx
+    const bx = toAppX(x), by = toAppY(y);
+    burst(bx, by, type==='bad' ? 10 : 22, type==='hot' ? 1.25 : 1);
+    floatText(bx, by, (add>=0?'+':'')+add, type);
+  }
+
+  // координаты арены -> canvas app
+  function toAppX(arenaX){
+    const a = els.arena.getBoundingClientRect();
+    const app = els.app.getBoundingClientRect();
+    return (a.left - app.left + arenaX) * dpr;
+  }
+  function toAppY(arenaY){
+    const a = els.arena.getBoundingClientRect();
+    const app = els.app.getBoundingClientRect();
+    return (a.top - app.top + arenaY) * dpr;
+  }
+
+  function floatText(x,y,txt,type){
+    const div = document.createElement('div');
+    div.textContent = txt;
+    div.style.position='absolute';
+    div.style.left = (x/dpr)+'px';
+    div.style.top  = (y/dpr - 10)+'px';
+    div.style.transform='translate(-50%,-50%)';
+    div.style.fontWeight='900';
+    div.style.letterSpacing='.2px';
+    div.style.pointerEvents='none';
+    div.style.zIndex='4';
+    div.style.textShadow='0 10px 30px rgba(0,0,0,.55)';
+    div.style.opacity='0';
+    div.style.transition='transform .55s ease, opacity .55s ease';
+    div.style.fontSize='16px';
+    const col = (type==='hot') ? 'rgba(255,79,216,.95)'
+              : (type==='warn')? 'rgba(255,209,102,.95)'
+              : (type==='bad') ? 'rgba(255,59,92,.95)'
+              : 'rgba(98,246,255,.95)';
+    div.style.color = col;
+    els.app.appendChild(div);
+
+    requestAnimationFrame(()=> {
+      div.style.opacity='1';
+      div.style.transform='translate(-50%,-80%)';
     });
+    setTimeout(()=> {
+      div.style.opacity='0';
+      div.style.transform='translate(-50%,-110%)';
+    }, 320);
+    setTimeout(()=> div.remove(), 900);
+  }
 
-    logoEl.addEventListener("touchstart", (e) => {
-      const t = e.touches[0];
-      handleClick(t.clientX, t.clientY);
-    }, { passive: true });
+  // ---------- Game flow ----------
+  function reset(){
+    score = 0; combo = 1; streak = 0; meter = 0; superMode = false;
+    tLeft = 30.0;
+    els.score.textContent = '0';
+    els.combo.textContent = 'x1';
+    els.comboHint.textContent = 'не промахнись!';
+    els.time.textContent = tLeft.toFixed(1);
+    els.meter.style.width = '0%';
+    els.mode.textContent = hard ? 'Режим: Hardcore' : 'Режим: Classic';
+    clearTargets();
+  }
 
-    // Кнопки бонусов
-    document.querySelectorAll(".bonusItem").forEach(item => {
-      const id = item.getAttribute("data-id");
-      const btn = item.querySelector(".bonusButton");
-      btn.addEventListener("click", () => activateBonus(id));
+  function clearTargets(){
+    els.arena.querySelectorAll('.ring').forEach(n=>n.remove());
+  }
+
+  function startGame(){
+    reset();
+    running = true;
+    paused = false;
+    spawnTimer = 0.15;
+    els.overlay.style.display = 'none';
+    els.startBtn.textContent = '⏸ Пауза';
+    beep(660, 0.06, 'triangle', 0.04);
+  }
+
+  function togglePause(){
+    if(!running) return;
+    paused = !paused;
+    els.startBtn.textContent = paused ? '▶ Продолжить' : '⏸ Пауза';
+    els.comboHint.textContent = paused ? 'пауза' : 'вперёд!';
+    beep(paused ? 260 : 520, 0.06, 'sine', 0.03);
+  }
+
+  function endGame(){
+    running = false; paused = false;
+    clearTargets();
+    if(score > best){
+      best = score;
+      localStorage.setItem(LS_BEST, best);
+    }
+    els.best.textContent = best;
+
+    // автосенд в Telegram
+    sendResult({ score, best, hard });
+
+    els.overlay.style.display = 'grid';
+    els.overlay.querySelector('h1').textContent = 'Раунд окончен';
+    els.overlay.querySelector('p').innerHTML =
+      `Твой счёт: <b>${score}</b> • рекорд: <b>${best}</b><br><span style="color:rgba(255,255,255,.6)">Нажми “Играть”, чтобы попробовать ещё раз.</span>`;
+    els.startBtn.textContent = '▶ Играть';
+    beep(220, 0.12, 'triangle', 0.04);
+  }
+
+  function sendResult(payload){
+    // payload должен быть строкой
+    const data = JSON.stringify({
+      game: 'neon_tap',
+      ts: Date.now(),
+      ...payload
     });
+    try{
+      if(TG?.sendData){
+        TG.sendData(data);
+        TG.HapticFeedback?.notificationOccurred?.('success');
+      }
+    }catch(e){}
+  }
 
-    // Старт
-    updateScoreViews();
-    updateBonusUI();
-  </script>
+  // ---------- UI events ----------
+  els.best.textContent = best;
+
+  els.playBtn.addEventListener('click', () => startGame());
+  els.startBtn.addEventListener('click', () => {
+    if(!running) startGame();
+    else togglePause();
+  });
+
+  els.howBtn.addEventListener('click', () => {
+    els.overlay.querySelector('h1').textContent = 'Как играть';
+    els.overlay.querySelector('p').innerHTML =
+      `Тапай по целям до того, как они исчезнут.<br>
+       <b>🔥</b> = много очков • <b>⭐</b> = заряд супер-режима • <b>💥</b> = сброс комбо.<br>
+       Каждые 3 попадания увеличивают комбо. Промах — комбо в ноль.`;
+  });
+
+  els.shareBtn.addEventListener('click', () => {
+    sendResult({ score, best, hard, manual:true });
+    beep(740, 0.06, 'triangle', 0.04);
+  });
+
+  els.soundToggle.addEventListener('click', () => {
+    sound = !sound;
+    els.soundToggle.classList.toggle('on', sound);
+    if(sound) beep(520,0.06,'sine',0.03);
+  });
+
+  els.hardToggle.addEventListener('click', () => {
+    hard = !hard;
+    els.hardToggle.classList.toggle('on', hard);
+    els.mode.textContent = hard ? 'Режим: Hardcore' : 'Режим: Classic';
+    beep(hard ? 420 : 320, 0.06, 'sine', 0.03);
+  });
+
+  // Space — старт/пауза
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space'){
+      e.preventDefault();
+      if(!running) startGame();
+      else togglePause();
+    }
+  });
+
+  // Телеграм-цвета/тема
+  try{
+    const th = TG?.themeParams;
+    if(th?.text_color){
+      document.documentElement.style.setProperty('--txt', th.text_color);
+    }
+  }catch(e){}
+
+})();
+</script>
 </body>
 </html>
