@@ -3,225 +3,222 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-  <title>Чемодан: угадай код</title>
+  <title>NOIR FLIP — Telegram WebApp</title>
   <style>
     :root{
-      --bg0:#070A12; --bg1:#0B1430;
-      --glass: rgba(255,255,255,.08);
-      --border: rgba(255,255,255,.12);
-      --txt: rgba(255,255,255,.92);
+      --bg:#0a0a0a;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --border: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
       --muted: rgba(255,255,255,.62);
-      --good:#62f6ff; --hot:#ff4fd8; --warn:#ffd166; --bad:#ff3b5c;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
       --r: 22px;
-      --shadow: 0 18px 60px rgba(0,0,0,.45);
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;overflow:hidden;
-      background:
-        radial-gradient(1200px 700px at 20% 10%, #1a1f46 0%, rgba(26,31,70,0) 55%),
-        radial-gradient(900px 600px at 85% 20%, #3d1451 0%, rgba(61,20,81,0) 55%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
-      color:var(--txt); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    }
+    html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{height:100%;display:grid;place-items:center;padding:14px}
     .app{
-      width:min(520px,100%); height:min(920px,100%);
+      width:min(540px,100%); height:min(920px,100%);
       border-radius: clamp(18px, 3vw, 30px);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow: var(--shadow);
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,.08), transparent 60%),
+        radial-gradient(900px 520px at 90% 20%, rgba(255,255,255,.06), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid var(--border);
-      backdrop-filter: blur(10px);
-      overflow:hidden; position:relative;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+      position:relative;
     }
-    canvas{position:absolute; inset:0; z-index:1}
+    canvas#fx{position:absolute;inset:0;z-index:1}
     .ui{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
     header{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:14px 16px 10px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
     }
-    .brand{display:flex;align-items:center;gap:10px}
+    .brand{display:flex;gap:10px;align-items:center}
     .logo{
       width:40px;height:40px;border-radius:14px;
-      background: radial-gradient(circle at 30% 30%, rgba(98,246,255,.9), rgba(255,79,216,.85));
-      box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 18px 40px rgba(255,79,216,.18);
-      position:relative;overflow:hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35), inset 0 0 22px rgba(255,255,255,.06);
+      position:relative; overflow:hidden;
     }
     .logo:after{
-      content:""; position:absolute; inset:-30%;
-      background: conic-gradient(from 180deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));
-      animation: spin 3.2s linear infinite;
+      content:""; position:absolute; inset:-40%;
+      background: conic-gradient(from 180deg, transparent, rgba(255,255,255,.22), transparent);
+      animation: spin 3.4s linear infinite;
+      filter: blur(.3px);
     }
     @keyframes spin{to{transform:rotate(360deg)}}
-    .title b{display:block;font-size:14px;letter-spacing:.2px}
+    .title b{display:block;font-size:14px;letter-spacing:.6px}
     .title span{display:block;font-size:12px;color:var(--muted)}
     .pill{
       display:flex;gap:10px;align-items:center;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 999px;
-      padding:8px 10px;
+      padding:8px 10px;border-radius:999px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
     }
     .mini{display:flex;flex-direction:column;gap:2px;min-width:84px;text-align:right}
     .mini .k{font-size:11px;color:var(--muted)}
-    .mini .v{font-weight:800;font-size:14px}
+    .mini .v{font-size:14px;font-weight:900}
     .btn{
-      border:none;cursor:pointer;color:var(--txt);
+      border:none;cursor:pointer;color:var(--text);
       padding:10px 12px;border-radius:14px;
       background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow: 0 12px 30px rgba(0,0,0,.2);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
       transition: transform .08s ease, filter .15s ease;
       user-select:none;
     }
     .btn:active{transform: translateY(1px) scale(.99); filter:brightness(1.05);}
     .btn.primary{
-      background: radial-gradient(circle at 30% 20%, rgba(98,246,255,.35), rgba(255,79,216,.25)) ,
-                  linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
-      border-color: rgba(98,246,255,.25);
+      background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
+      border-color: rgba(255,255,255,.22);
     }
+
     .content{flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px}
     .card{
       background: rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
       border-radius: var(--r);
-      box-shadow: 0 14px 40px rgba(0,0,0,.25);
+      box-shadow: 0 14px 40px rgba(0,0,0,.28);
       overflow:hidden;
     }
-    .panel{padding:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .statline{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:10px;color:var(--muted);font-size:12px;margin-top:8px
+    .stats{
+      display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;
     }
-    .digits{
-      display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;
-    }
-    .digit{
-      height:58px;border-radius:18px;
-      display:grid;place-items:center;
-      background: rgba(0,0,0,.14);
-      border:1px solid rgba(255,255,255,.10);
-      font-size:22px;font-weight:900;letter-spacing:2px;
-      box-shadow: inset 0 0 18px rgba(255,255,255,.06);
-    }
-    .digit.empty{color: rgba(255,255,255,.25)}
-    .hint{
-      margin-top:10px;
-      display:flex;gap:10px;flex-wrap:wrap;
-    }
-    .chip{
-      font-size:12px;color:var(--muted);
-      padding:8px 10px;border-radius:999px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .arena{
-      height: clamp(280px, 40vh, 420px);
-      display:grid;place-items:center;
-      position:relative;
-      background:
-        radial-gradient(700px 340px at 50% 20%, rgba(98,246,255,.12), rgba(98,246,255,0) 60%),
-        radial-gradient(700px 340px at 50% 90%, rgba(255,79,216,.10), rgba(255,79,216,0) 60%),
-        linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.10));
-    }
-    .case{
-      width:min(360px, 92%); aspect-ratio: 16/10;
-      border-radius: 26px;
-      position:relative;
-      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: 0 22px 70px rgba(0,0,0,.38);
-      overflow:hidden;
-    }
-    .case:before{
-      content:""; position:absolute; inset:-40%;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(98,246,255,.18), rgba(98,246,255,0) 55%),
-        radial-gradient(circle at 80% 40%, rgba(255,79,216,.16), rgba(255,79,216,0) 55%),
-        conic-gradient(from 200deg, rgba(255,255,255,0), rgba(255,255,255,.12), rgba(255,255,255,0));
-      filter: blur(1px);
-      animation: glow 5.5s ease-in-out infinite;
-    }
-    @keyframes glow{50%{transform: translate(2%, -1%) scale(1.02)}}
-    .lid{
-      position:absolute; inset:0;
-      transform-origin: left center;
-      transform: rotateY(0deg);
-      transition: transform .75s cubic-bezier(.2,.9,.2,1);
-      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.08));
-      border-left:1px solid rgba(255,255,255,.12);
-      display:flex;align-items:center;justify-content:center;
-      gap:12px;
-    }
-    .case.open .lid{ transform: rotateY(-78deg); }
-    .lock{
-      width:80px;height:80px;border-radius:22px;
-      display:grid;place-items:center;
-      background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: inset 0 0 18px rgba(255,255,255,.06), 0 18px 40px rgba(0,0,0,.25);
-      font-size:34px;
-    }
-    .msg{
-      position:absolute; left:12px; right:12px; bottom:12px;
-      padding:10px 12px;border-radius:18px;
+    .stat{
       background: rgba(0,0,0,.22);
       border:1px solid rgba(255,255,255,.10);
-      color: var(--muted);
-      font-size:12px;
-      display:flex;justify-content:space-between;gap:10px;align-items:center;
+      border-radius: 18px;
+      padding:10px;
     }
-    .kbd{
-      display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
-      padding:12px;
-      background: rgba(255,255,255,.04);
-      border-top:1px solid rgba(255,255,255,.10);
+    .stat .k{font-size:11px;color:var(--muted)}
+    .stat .v{font-size:18px;font-weight:900;margin-top:4px}
+    .bar{
+      height:8px;border-radius:999px;overflow:hidden;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      margin-top:8px;
     }
-    .key{
-      height:52px;border-radius:18px;
+    .bar>i{
+      display:block;height:100%;width:0%;
+      background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.35));
+      box-shadow: 0 0 22px rgba(255,255,255,.20);
+    }
+
+    .arena{
+      height: clamp(380px, 56vh, 560px);
+      position:relative;
+      border-radius: var(--r);
+      background:
+        radial-gradient(700px 380px at 50% 10%, rgba(255,255,255,.10), transparent 65%),
+        linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.14));
       border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      color:var(--txt);
-      font-size:18px;font-weight:900;
-      cursor:pointer; user-select:none;
-      box-shadow: 0 14px 40px rgba(0,0,0,.18), inset 0 0 16px rgba(255,255,255,.04);
-      transition: transform .08s ease, filter .15s ease;
+      overflow:hidden;
+      touch-action: manipulation;
     }
-    .key:active{transform: translateY(1px) scale(.99); filter:brightness(1.06);}
-    .key.alt{font-size:14px;color:rgba(255,255,255,.78)}
-    .key.danger{color: rgba(255,255,255,.9)}
-    .shake{animation: shake .18s linear 1}
-    @keyframes shake{
-      0%{transform:translateX(0)}25%{transform:translateX(-3px)}
-      50%{transform:translateX(3px)}75%{transform:translateX(-2px)}
-      100%{transform:translateX(0)}
+    .grain{
+      position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
     }
+    .grid{
+      position:absolute; inset:-20%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, transparent 2px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 28px 28px, 96px 96px, 96px 96px;
+      transform: rotate(10deg);
+      opacity:.35;
+      pointer-events:none;
+    }
+    .hint{
+      position:absolute;left:14px;right:14px;top:12px;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+      font-size:12px;color:var(--muted);
+      pointer-events:none;
+    }
+    .hint b{color:var(--text)}
+    .orbs{position:absolute;inset:0}
+    .orb{
+      position:absolute; width:92px; height:92px;
+      border-radius:999px;
+      transform: translate(-50%,-50%) scale(.8);
+      opacity:0;
+      display:grid; place-items:center;
+      cursor:pointer;
+      user-select:none;
+      will-change: transform, opacity;
+      filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
+    }
+    .orb .core{
+      width:58px;height:58px;border-radius:999px;
+      display:grid;place-items:center;
+      font-weight:950; letter-spacing:.4px;
+      border:1px solid rgba(255,255,255,.24);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,.06));
+      box-shadow:
+        inset 0 0 18px rgba(255,255,255,.06),
+        0 0 0 10px rgba(255,255,255,.06),
+        0 0 0 22px rgba(255,255,255,.03),
+        0 0 44px rgba(255,255,255,.10);
+    }
+    .orb.dark .core{
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.12), rgba(0,0,0,.22));
+      border-color: rgba(255,255,255,.16);
+      box-shadow:
+        inset 0 0 18px rgba(255,255,255,.05),
+        0 0 0 10px rgba(0,0,0,.22),
+        0 0 0 22px rgba(255,255,255,.02),
+        0 0 44px rgba(255,255,255,.10);
+    }
+
+    .footer{
+      padding:12px;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .tag{
+      font-size:12px;color:var(--muted);
+      padding:8px 10px;border-radius:999px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      display:flex;align-items:center;gap:8px;
+      user-select:none;
+    }
+    .dot{width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.20)}
+    .tag.on .dot{background:rgba(255,255,255,.85); box-shadow:0 0 18px rgba(255,255,255,.20)}
     .overlay{
       position:absolute; inset:0; z-index:3;
-      display:none; place-items:center; padding:18px;
-      background: radial-gradient(700px 450px at 50% 25%, rgba(255,255,255,.10), rgba(0,0,0,.34) 65%),
-                  rgba(0,0,0,.25);
-      backdrop-filter: blur(10px);
+      display:grid; place-items:center; padding:18px;
+      background: radial-gradient(800px 520px at 50% 25%, rgba(255,255,255,.10), rgba(0,0,0,.40) 70%),
+                  rgba(0,0,0,.30);
+      backdrop-filter: blur(12px);
     }
     .modal{
-      width:min(420px, 100%);
+      width:min(420px,100%);
       border-radius: 26px;
       background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
       box-shadow: var(--shadow);
       padding:16px;
     }
-    .modal h2{margin:0 0 6px;font-size:18px}
+    .modal h1{margin:0 0 6px;font-size:18px;letter-spacing:.6px}
     .modal p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.35}
-    .promo{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:12px;border-radius:18px;
-      background: rgba(0,0,0,.18);
-      border:1px dashed rgba(255,255,255,.22);
-      margin:12px 0;
-      font-weight:900; letter-spacing:.6px;
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row .btn{flex:1}
+    .tiny{font-size:11px;color:rgba(255,255,255,.55);margin-top:10px}
+    .shake{animation: shake .18s linear 1}
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      25%{transform:translateX(-3px)}
+      50%{transform:translateX(3px)}
+      75%{transform:translateX(-2px)}
+      100%{transform:translateX(0)}
     }
-    .small{font-size:11px;color:rgba(255,255,255,.55);margin-top:10px}
   </style>
 </head>
 <body>
@@ -234,79 +231,376 @@
         <div class="brand">
           <div class="logo" aria-hidden="true"></div>
           <div class="title">
-            <b>Чемодан</b>
-            <span>угадай 4 цифры — получи промокод</span>
+            <b>NOIR FLIP</b>
+            <span>тапай “светлые” • избегай “тёмных”</span>
           </div>
         </div>
         <div class="pill">
           <div class="mini">
-            <div class="k">Попытки</div>
-            <div class="v" id="tries">0</div>
+            <div class="k">Рекорд</div>
+            <div class="v" id="best">0</div>
           </div>
-          <button class="btn" id="resetBtn" title="Новая игра">↻</button>
+          <button class="btn" id="sendBtn" title="Отправить результат боту">⤴</button>
         </div>
       </header>
 
       <div class="content">
         <div class="card">
-          <div class="panel">
-            <div class="row" style="justify-content:space-between;align-items:center">
-              <div style="font-weight:800">Введи код</div>
-              <div class="chip" id="status">Подсказка: 4 цифры (0–9)</div>
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Счёт</div>
+              <div class="v" id="score">0</div>
+              <div class="bar" title="фокус-режим"><i id="focusBar"></i></div>
             </div>
-
-            <div class="digits" id="digits">
-              <div class="digit empty">•</div>
-              <div class="digit empty">•</div>
-              <div class="digit empty">•</div>
-              <div class="digit empty">•</div>
+            <div class="stat">
+              <div class="k">Комбо</div>
+              <div class="v" id="combo">x1</div>
+              <div class="k" id="comboHint" style="margin-top:6px">лови ритм</div>
             </div>
-
-            <div class="hint">
-              <div class="chip">🟢 зелёный: цифра на месте</div>
-              <div class="chip">🟡 жёлтый: цифра есть, но не там</div>
-              <div class="chip">⚫ нет такой цифры</div>
-            </div>
-
-            <div class="statline">
-              <div>После попытки покажу подсказку по каждой цифре.</div>
-              <div id="modeLabel">Режим: честный</div>
+            <div class="stat">
+              <div class="k">Время</div>
+              <div class="v"><span id="time">25.0</span>s</div>
+              <div class="k" id="mode">Режим: Noir</div>
             </div>
           </div>
         </div>
 
-        <div class="card arena">
-          <div class="case" id="case">
-            <div class="lid">
-              <div class="lock" id="lockIcon">🔒</div>
-            </div>
-            <div class="msg">
-              <span id="caseMsg">Чемодан закрыт. Угадай код!</span>
-              <span id="timerMsg">⏱️</span>
-            </div>
+        <div class="arena card" id="arena">
+          <div class="grid"></div>
+          <div class="grain"></div>
+          <div class="hint">
+            <div>Светлое = <b>+очки</b>. Тёмное = <b>сброс</b>.</div>
+            <div><b>Space</b> старт/пауза</div>
           </div>
+          <div class="orbs" id="orbs"></div>
         </div>
 
-        <div class="card">
-          <div class="kbd" id="kbd">
-            <!-- keys generated by JS -->
-          </div>
-        </div>
-
-        <div class="card" style="padding:12px;display:flex;gap:10px;justify-content:space-between;align-items:center">
-          <button class="btn" id="backBtn">⌫ Стереть</button>
-          <button class="btn primary" id="okBtn">✅ Проверить</button>
+        <div class="card footer">
+          <div class="tag on" id="hardTag"><span class="dot"></span> хардкор</div>
+          <button class="btn primary" id="startBtn">▶ Играть</button>
         </div>
       </div>
     </div>
 
     <div class="overlay" id="overlay">
       <div class="modal">
-        <h2 id="winTitle">Чемодан открыт 🎉</h2>
-        <p id="winText">Вот твой промокод:</p>
-        <div class="promo">
-          <span id="promoCode">PROMO-XXXX</span>
-          <button class="btn" id="copyBtn">Копировать</button>
-        </div>
+        <h1>NOIR FLIP</h1>
+        <p>
+          Простая, но залипательная мини-игра в ч/б стиле.<br>
+          Тапай <b>светлые</b> круги. Не трогай <b>тёмные</b>.
+        </p>
         <div class="row">
-          <button class="btn primary" id="sendBtn">Отправить боту 📤</button>
+          <button class="btn primary" id="playBtn">Играть</button>
+          <button class="btn" id="howBtn">Как играть</button>
+        </div>
+        <div class="tiny">Под Telegram WebApp: результат можно отправить кнопкой ⤴.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const TG = window.Telegram?.WebApp;
+  try{ TG?.ready(); TG?.expand(); }catch(e){}
+
+  const els = {
+    app: document.getElementById('app'),
+    fx: document.getElementById('fx'),
+    arena: document.getElementById('arena'),
+    orbs: document.getElementById('orbs'),
+    overlay: document.getElementById('overlay'),
+    playBtn: document.getElementById('playBtn'),
+    howBtn: document.getElementById('howBtn'),
+    startBtn: document.getElementById('startBtn'),
+    hardTag: document.getElementById('hardTag'),
+    sendBtn: document.getElementById('sendBtn'),
+
+    score: document.getElementById('score'),
+    best: document.getElementById('best'),
+    combo: document.getElementById('combo'),
+    comboHint: document.getElementById('comboHint'),
+    time: document.getElementById('time'),
+    mode: document.getElementById('mode'),
+    focusBar: document.getElementById('focusBar'),
+  };
+
+  const LS_BEST = "noir_flip_best_v1";
+  let best = +localStorage.getItem(LS_BEST) || 0;
+  els.best.textContent = best;
+
+  let running=false, paused=false;
+  let tLeft=25.0;
+
+  let score=0, combo=1, streak=0;
+  let focus=0;            // 0..100
+  let focusMode=false;    // x2 очки
+
+  let hard=true;
+  let spawnTimer=0;
+
+  // ---------- Particles (black/white) ----------
+  const c = els.fx, ctx = c.getContext('2d');
+  let w=0,h=0,dpr=1;
+  const P=[];
+
+  function resize(){
+    const r = els.app.getBoundingClientRect();
+    dpr = Math.min(2, window.devicePixelRatio||1);
+    w = Math.floor(r.width*dpr);
+    h = Math.floor(r.height*dpr);
+    c.width=w; c.height=h;
+    c.style.width=r.width+'px';
+    c.style.height=r.height+'px';
+  }
+  window.addEventListener('resize', resize, {passive:true}); resize();
+
+  function burst(x,y,n=18,bright=true){
+    for(let i=0;i<n;i++){
+      const a=Math.random()*Math.PI*2;
+      const sp=(Math.random()*2.2+1.0)*(bright?1.05:.95);
+      P.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,r:Math.random()*3+1,bright});
+    }
+  }
+
+  let last=performance.now();
+  function tick(now){
+    const dt=Math.min(0.033,(now-last)/1000); last=now;
+
+    ctx.clearRect(0,0,w,h);
+    for(let i=P.length-1;i>=0;i--){
+      const p=P[i];
+      p.life-=dt*1.55;
+      p.x+=p.vx*60*dt; p.y+=p.vy*60*dt;
+      p.vx*=0.985; p.vy*=0.985; p.vy+=0.12;
+      if(p.life<=0){P.splice(i,1); continue;}
+      ctx.globalAlpha=Math.max(0,p.life);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*dpr,0,Math.PI*2);
+      ctx.fillStyle = p.bright ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)';
+      ctx.shadowBlur = 16*dpr;
+      ctx.shadowColor = p.bright ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.18)';
+      ctx.fill();
+      ctx.shadowBlur=0;
+    }
+
+    if(running && !paused){
+      tLeft -= dt;
+      if(tLeft<=0){ tLeft=0; endGame(); }
+      els.time.textContent = tLeft.toFixed(1);
+
+      spawnTimer -= dt;
+      if(spawnTimer<=0){
+        spawnOrb();
+        const base = hard ? 0.58 : 0.74;
+        spawnTimer = base * (focusMode?0.78:1) * (0.92 + Math.random()*0.28);
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ---------- Helpers ----------
+  function rand(min,max){ return min + Math.random()*(max-min); }
+  function toAppXYFromArena(ax, ay){
+    const a = els.arena.getBoundingClientRect();
+    const app = els.app.getBoundingClientRect();
+    return { x:(a.left-app.left+ax)*dpr, y:(a.top-app.top+ay)*dpr };
+  }
+  function floatText(ax,ay,text,bright){
+    const div=document.createElement('div');
+    div.textContent=text;
+    div.style.position='absolute';
+    div.style.left=ax+'px'; div.style.top=ay+'px';
+    div.style.transform='translate(-50%,-50%)';
+    div.style.pointerEvents='none';
+    div.style.zIndex='4';
+    div.style.fontWeight='950';
+    div.style.letterSpacing='.4px';
+    div.style.textShadow='0 12px 30px rgba(0,0,0,.6)';
+    div.style.color = bright ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.55)';
+    div.style.opacity='0';
+    div.style.transition='transform .55s ease, opacity .55s ease';
+    els.app.appendChild(div);
+    requestAnimationFrame(()=>{
+      div.style.opacity='1';
+      div.style.transform='translate(-50%,-86%)';
+    });
+    setTimeout(()=>{
+      div.style.opacity='0';
+      div.style.transform='translate(-50%,-120%)';
+    }, 300);
+    setTimeout(()=>div.remove(), 900);
+  }
+
+  // ---------- Orbs ----------
+  function spawnOrb(){
+    const rect = els.arena.getBoundingClientRect();
+    const pad = 70;
+    const x = rand(pad, rect.width - pad);
+    const y = rand(96, rect.height - pad);
+
+    const r = Math.random();
+    // bright = good, dark = trap
+    let bright = r > (hard ? 0.26 : 0.22); // шанс ловушки
+    // в фокус-режиме больше ловушек
+    if(focusMode && Math.random()>0.55) bright = false;
+
+    const orb = document.createElement('div');
+    orb.className = 'orb ' + (bright ? 'bright' : 'dark');
+    orb.style.left = x + 'px';
+    orb.style.top = y + 'px';
+    orb.innerHTML = `<div class="core">${bright ? '◻' : '◼'}</div>`;
+    els.orbs.appendChild(orb);
+
+    const born = performance.now();
+    const life = hard ? rand(0.70, 1.05) : rand(0.90, 1.25);
+    const scale = rand(0.92, 1.12);
+
+    function anim(){
+      const t = (performance.now()-born)/1000;
+      const p = Math.min(1, t/0.10);
+      orb.style.opacity = String(p);
+      orb.style.transform = `translate(-50%,-50%) scale(${(0.82+p*0.18)*scale})`;
+
+      if(!running || paused){ requestAnimationFrame(anim); return; }
+      if(t > life){
+        // промах по светлому — неприятно (только если светлый)
+        if(bright){
+          combo=1; streak=0;
+          els.combo.textContent='x'+combo;
+          els.comboHint.textContent='промах — комбо сброшено';
+          els.app.classList.add('shake'); setTimeout(()=>els.app.classList.remove('shake'),180);
+        }
+        orb.remove();
+        return;
+      }
+      requestAnimationFrame(anim);
+    }
+    requestAnimationFrame(anim);
+
+    orb.addEventListener('pointerdown', (ev)=>{
+      ev.preventDefault();
+      if(!running || paused) return;
+      orb.remove();
+
+      const xy = toAppXYFromArena(x,y);
+      if(bright){
+        streak++;
+        if(streak % 3 === 0) combo = Math.min(9, combo+1);
+        const add = Math.round((10 + (focusMode?4:0)) * combo * (focusMode?2:1));
+        score += add;
+        els.score.textContent = score;
+        els.combo.textContent = 'x'+combo;
+        els.comboHint.textContent = streak>=6 ? 'идеально' : 'держи ритм';
+
+        focus = Math.min(100, focus + 18);
+        els.focusBar.style.width = focus + '%';
+
+        burst(xy.x, xy.y, 22, true);
+        floatText(x, y, '+'+add, true);
+
+        if(focus>=100 && !focusMode){
+          focusMode = true; focus = 0; els.focusBar.style.width='0%';
+          els.mode.textContent = 'Режим: FOCUS (x2)';
+          burst(xy.x, xy.y, 40, true);
+          try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
+          setTimeout(()=>{
+            focusMode=false;
+            els.mode.textContent='Режим: Noir';
+          }, 5200);
+        }
+      } else {
+        // ловушка
+        score = Math.max(0, score - 22);
+        combo=1; streak=0;
+        els.score.textContent = score;
+        els.combo.textContent = 'x1';
+        els.comboHint.textContent = 'ловушка! минус очки';
+        focus = Math.max(0, focus - 28);
+        els.focusBar.style.width = focus + '%';
+        burst(xy.x, xy.y, 18, false);
+        floatText(x, y, '-22', false);
+        els.app.classList.add('shake'); setTimeout(()=>els.app.classList.remove('shake'),180);
+        try{ TG?.HapticFeedback?.impactOccurred?.('heavy'); }catch(e){}
+      }
+    }, {passive:false});
+  }
+
+  // ---------- Game flow ----------
+  function reset(){
+    score=0; combo=1; streak=0; focus=0; focusMode=false;
+    tLeft=25.0; spawnTimer=0.15;
+    els.score.textContent='0';
+    els.combo.textContent='x1';
+    els.comboHint.textContent='лови ритм';
+    els.time.textContent=tLeft.toFixed(1);
+    els.focusBar.style.width='0%';
+    els.mode.textContent='Режим: Noir';
+    els.orbs.innerHTML='';
+  }
+
+  function start(){
+    reset();
+    running=true; paused=false;
+    els.overlay.style.display='none';
+    els.startBtn.textContent='⏸ Пауза';
+  }
+
+  function togglePause(){
+    if(!running) return;
+    paused=!paused;
+    els.startBtn.textContent = paused ? '▶ Продолжить' : '⏸ Пауза';
+    els.comboHint.textContent = paused ? 'пауза' : 'поехали';
+  }
+
+  function endGame(){
+    running=false; paused=false;
+    els.orbs.innerHTML='';
+    if(score>best){ best=score; localStorage.setItem(LS_BEST, best); }
+    els.best.textContent=best;
+
+    // auto send (если TG)
+    sendResult(false);
+
+    els.overlay.style.display='grid';
+    els.overlay.querySelector('h1').textContent='Раунд окончен';
+    els.overlay.querySelector('p').innerHTML =
+      `Твой счёт: <b>${score}</b> • рекорд: <b>${best}</b><br><span style="color:rgba(255,255,255,.62)">Светлое/тёмное — простая дуэль внимания.</span>`;
+    els.startBtn.textContent='▶ Играть';
+  }
+
+  function sendResult(manual){
+    const data = JSON.stringify({ game:'noir_flip', score, best, hard, manual:!!manual, ts:Date.now() });
+    try{
+      if(TG?.sendData){
+        TG.sendData(data);
+        TG?.HapticFeedback?.impactOccurred?.('light');
+      }
+    }catch(e){}
+  }
+
+  // ---------- UI ----------
+  els.playBtn.addEventListener('click', start);
+  els.startBtn.addEventListener('click', ()=>{ if(!running) start(); else togglePause(); });
+  els.howBtn.addEventListener('click', ()=>{
+    els.overlay.querySelector('h1').textContent='Как играть';
+    els.overlay.querySelector('p').innerHTML =
+      `Тапай <b>◻ светлые</b> круги — получаешь очки и накапливаешь “фокус”.<br>
+       Если нажмёшь <b>◼ тёмный</b> — теряешь очки и комбо.<br>
+       Когда фокус заполнится — 5 секунд <b>x2</b> к очкам.`;
+  });
+  els.hardTag.addEventListener('click', ()=>{
+    hard=!hard;
+    els.hardTag.classList.toggle('on', hard);
+  });
+  els.sendBtn.addEventListener('click', ()=>sendResult(true));
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){ e.preventDefault(); if(!running) start(); else togglePause(); }
+  });
+
+})();
+</script>
+</body>
+</html>
