@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-  <title>NOIR FLIP — Telegram WebApp</title>
+  <title>NOIR iPuzzle — собери iPhone</title>
   <style>
     :root{
       --bg:#0a0a0a;
@@ -14,13 +14,15 @@
       --muted: rgba(255,255,255,.62);
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --r: 22px;
+      --good: rgba(255,255,255,.90);
+      --dim: rgba(255,255,255,.35);
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);
       font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{height:100%;display:grid;place-items:center;padding:14px}
     .app{
-      width:min(540px,100%); height:min(920px,100%);
+      width:min(560px,100%); height:min(940px,100%);
       border-radius: clamp(18px, 3vw, 30px);
       background:
         radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,.08), transparent 60%),
@@ -61,7 +63,7 @@
       background: rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.12);
     }
-    .mini{display:flex;flex-direction:column;gap:2px;min-width:84px;text-align:right}
+    .mini{display:flex;flex-direction:column;gap:2px;min-width:92px;text-align:right}
     .mini .k{font-size:11px;color:var(--muted)}
     .mini .v{font-size:14px;font-weight:900}
     .btn{
@@ -87,43 +89,30 @@
       box-shadow: 0 14px 40px rgba(0,0,0,.28);
       overflow:hidden;
     }
-    .stats{
-      display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;
-    }
-    .stat{
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      padding:10px;
-    }
-    .stat .k{font-size:11px;color:var(--muted)}
-    .stat .v{font-size:18px;font-weight:900;margin-top:4px}
-    .bar{
-      height:8px;border-radius:999px;overflow:hidden;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      margin-top:8px;
-    }
-    .bar>i{
-      display:block;height:100%;width:0%;
-      background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.35));
-      box-shadow: 0 0 22px rgba(255,255,255,.20);
-    }
 
+    .topbar{
+      display:flex;gap:10px;align-items:center;justify-content:space-between;
+      padding:12px;
+    }
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{
+      font-size:12px;color:var(--muted);
+      padding:8px 10px;border-radius:999px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      user-select:none;
+    }
+    .chip b{color:var(--text)}
     .arena{
-      height: clamp(380px, 56vh, 560px);
+      height: clamp(460px, 62vh, 650px);
       position:relative;
       border-radius: var(--r);
       background:
         radial-gradient(700px 380px at 50% 10%, rgba(255,255,255,.10), transparent 65%),
-        linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.14));
+        linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.16));
       border:1px solid rgba(255,255,255,.12);
       overflow:hidden;
-      touch-action: manipulation;
-    }
-    .grain{
-      position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+      touch-action: none;
     }
     .grid{
       position:absolute; inset:-20%;
@@ -136,70 +125,86 @@
       opacity:.35;
       pointer-events:none;
     }
-    .hint{
-      position:absolute;left:14px;right:14px;top:12px;
-      display:flex;justify-content:space-between;align-items:center;gap:10px;
-      font-size:12px;color:var(--muted);
-      pointer-events:none;
+    .grain{
+      position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
     }
-    .hint b{color:var(--text)}
-    .orbs{position:absolute;inset:0}
-    .orb{
-      position:absolute; width:92px; height:92px;
-      border-radius:999px;
-      transform: translate(-50%,-50%) scale(.8);
-      opacity:0;
-      display:grid; place-items:center;
-      cursor:pointer;
+
+    /* “контур iPhone” — куда собирать */
+    .board{
+      position:absolute;
+      left:50%; top:50%;
+      width:min(280px, 60vw);
+      aspect-ratio: 9/19.5;
+      transform: translate(-50%,-50%);
+      border-radius: 40px;
+      border:1px solid rgba(255,255,255,.20);
+      background: rgba(255,255,255,.03);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 30px 80px rgba(0,0,0,.50);
+    }
+    .board:before{
+      content:""; position:absolute; left:50%; top:10px; transform:translateX(-50%);
+      width:36%; height:20px; border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .board:after{
+      content:""; position:absolute; inset:10px;
+      border-radius: 34px;
+      border:1px dashed rgba(255,255,255,.14);
+      opacity:.8;
+    }
+
+    /* “слоты” внутри iPhone */
+    .slot{
+      position:absolute;
+      border-radius: 18px;
+      background: rgba(255,255,255,.04);
+      border:1px dashed rgba(255,255,255,.18);
+      box-shadow: inset 0 0 18px rgba(255,255,255,.04);
+    }
+    .slot.ok{
+      border-style: solid;
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.28);
+      box-shadow: inset 0 0 22px rgba(255,255,255,.06), 0 0 30px rgba(255,255,255,.08);
+    }
+
+    /* Пазлы */
+    .piece{
+      position:absolute;
+      border-radius: 18px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), rgba(255,255,255,.06));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.05);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:950; letter-spacing:.6px;
       user-select:none;
-      will-change: transform, opacity;
-      filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
+      cursor:grab;
+      touch-action:none;
+      transition: filter .12s ease;
     }
-    .orb .core{
-      width:58px;height:58px;border-radius:999px;
-      display:grid;place-items:center;
-      font-weight:950; letter-spacing:.4px;
-      border:1px solid rgba(255,255,255,.24);
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,.06));
-      box-shadow:
-        inset 0 0 18px rgba(255,255,255,.06),
-        0 0 0 10px rgba(255,255,255,.06),
-        0 0 0 22px rgba(255,255,255,.03),
-        0 0 44px rgba(255,255,255,.10);
-    }
-    .orb.dark .core{
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.12), rgba(0,0,0,.22));
-      border-color: rgba(255,255,255,.16);
-      box-shadow:
-        inset 0 0 18px rgba(255,255,255,.05),
-        0 0 0 10px rgba(0,0,0,.22),
-        0 0 0 22px rgba(255,255,255,.02),
-        0 0 44px rgba(255,255,255,.10);
+    .piece:active{cursor:grabbing; filter:brightness(1.08)}
+    .piece.placed{
+      cursor:default;
+      border-color: rgba(255,255,255,.28);
+      box-shadow: 0 22px 70px rgba(0,0,0,.28), inset 0 0 18px rgba(255,255,255,.06);
     }
 
     .footer{
       padding:12px;
       display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
-    .tag{
-      font-size:12px;color:var(--muted);
-      padding:8px 10px;border-radius:999px;
-      background: rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.12);
-      display:flex;align-items:center;gap:8px;
-      user-select:none;
-    }
-    .dot{width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.20)}
-    .tag.on .dot{background:rgba(255,255,255,.85); box-shadow:0 0 18px rgba(255,255,255,.20)}
+
     .overlay{
       position:absolute; inset:0; z-index:3;
       display:grid; place-items:center; padding:18px;
-      background: radial-gradient(800px 520px at 50% 25%, rgba(255,255,255,.10), rgba(0,0,0,.40) 70%),
+      background: radial-gradient(800px 520px at 50% 25%, rgba(255,255,255,.10), rgba(0,0,0,.45) 70%),
                   rgba(0,0,0,.30);
       backdrop-filter: blur(12px);
     }
     .modal{
-      width:min(420px,100%);
+      width:min(440px,100%);
       border-radius: 26px;
       background: rgba(255,255,255,.08);
       border:1px solid rgba(255,255,255,.14);
@@ -210,13 +215,19 @@
     .modal p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.35}
     .row{display:flex;gap:10px;flex-wrap:wrap}
     .row .btn{flex:1}
+    .promo{
+      margin:12px 0;
+      padding:12px 12px;border-radius:18px;
+      background: rgba(0,0,0,.22);
+      border:1px dashed rgba(255,255,255,.22);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      font-weight:950; letter-spacing:.8px;
+    }
     .tiny{font-size:11px;color:rgba(255,255,255,.55);margin-top:10px}
     .shake{animation: shake .18s linear 1}
     @keyframes shake{
-      0%{transform:translateX(0)}
-      25%{transform:translateX(-3px)}
-      50%{transform:translateX(3px)}
-      75%{transform:translateX(-2px)}
+      0%{transform:translateX(0)}25%{transform:translateX(-3px)}
+      50%{transform:translateX(3px)}75%{transform:translateX(-2px)}
       100%{transform:translateX(0)}
     }
   </style>
@@ -231,14 +242,14 @@
         <div class="brand">
           <div class="logo" aria-hidden="true"></div>
           <div class="title">
-            <b>NOIR FLIP</b>
-            <span>тапай “светлые” • избегай “тёмных”</span>
+            <b>NOIR iPUZZLE</b>
+            <span>собери iPhone из деталей (пазл)</span>
           </div>
         </div>
         <div class="pill">
           <div class="mini">
-            <div class="k">Рекорд</div>
-            <div class="v" id="best">0</div>
+            <div class="k">Время</div>
+            <div class="v"><span id="time">0.0</span>s</div>
           </div>
           <button class="btn" id="sendBtn" title="Отправить результат боту">⤴</button>
         </div>
@@ -246,21 +257,14 @@
 
       <div class="content">
         <div class="card">
-          <div class="stats">
-            <div class="stat">
-              <div class="k">Счёт</div>
-              <div class="v" id="score">0</div>
-              <div class="bar" title="фокус-режим"><i id="focusBar"></i></div>
+          <div class="topbar">
+            <div class="chips">
+              <div class="chip">Перетащи детали в <b>контур</b></div>
+              <div class="chip">Если близко — <b>прилипнет</b></div>
             </div>
-            <div class="stat">
-              <div class="k">Комбо</div>
-              <div class="v" id="combo">x1</div>
-              <div class="k" id="comboHint" style="margin-top:6px">лови ритм</div>
-            </div>
-            <div class="stat">
-              <div class="k">Время</div>
-              <div class="v"><span id="time">25.0</span>s</div>
-              <div class="k" id="mode">Режим: Noir</div>
+            <div class="chips">
+              <div class="chip">Собрано: <b id="done">0</b>/6</div>
+              <button class="btn" id="resetBtn">↻ заново</button>
             </div>
           </div>
         </div>
@@ -268,32 +272,35 @@
         <div class="arena card" id="arena">
           <div class="grid"></div>
           <div class="grain"></div>
-          <div class="hint">
-            <div>Светлое = <b>+очки</b>. Тёмное = <b>сброс</b>.</div>
-            <div><b>Space</b> старт/пауза</div>
+
+          <div class="board" id="board">
+            <!-- slots injected by JS -->
           </div>
-          <div class="orbs" id="orbs"></div>
+
+          <div id="pieces"></div>
         </div>
 
         <div class="card footer">
-          <div class="tag on" id="hardTag"><span class="dot"></span> хардкор</div>
-          <button class="btn primary" id="startBtn">▶ Играть</button>
+          <div class="chip" id="status">Собери все 6 деталей — iPhone готов.</div>
+          <button class="btn primary" id="startBtn">▶ Старт</button>
         </div>
       </div>
     </div>
 
     <div class="overlay" id="overlay">
       <div class="modal">
-        <h1>NOIR FLIP</h1>
-        <p>
-          Простая, но залипательная мини-игра в ч/б стиле.<br>
-          Тапай <b>светлые</b> круги. Не трогай <b>тёмные</b>.
+        <h1 id="ovTitle">NOIR iPUZZLE</h1>
+        <p id="ovText">
+          Быстрая ч/б игра-пазл для Telegram WebApp.<br>
+          Нажми «Старт» и собери iPhone как можно быстрее.
         </p>
         <div class="row">
-          <button class="btn primary" id="playBtn">Играть</button>
+          <button class="btn primary" id="playBtn">Старт</button>
           <button class="btn" id="howBtn">Как играть</button>
         </div>
-        <div class="tiny">Под Telegram WebApp: результат можно отправить кнопкой ⤴.</div>
+        <div class="tiny">
+          Для настоящих промо/призов не храни выдачу в HTML — делай через бота/сервер.
+        </div>
       </div>
     </div>
   </div>
@@ -308,42 +315,27 @@
     app: document.getElementById('app'),
     fx: document.getElementById('fx'),
     arena: document.getElementById('arena'),
-    orbs: document.getElementById('orbs'),
+    board: document.getElementById('board'),
+    piecesWrap: document.getElementById('pieces'),
     overlay: document.getElementById('overlay'),
+
     playBtn: document.getElementById('playBtn'),
     howBtn: document.getElementById('howBtn'),
     startBtn: document.getElementById('startBtn'),
-    hardTag: document.getElementById('hardTag'),
+    resetBtn: document.getElementById('resetBtn'),
     sendBtn: document.getElementById('sendBtn'),
 
-    score: document.getElementById('score'),
-    best: document.getElementById('best'),
-    combo: document.getElementById('combo'),
-    comboHint: document.getElementById('comboHint'),
     time: document.getElementById('time'),
-    mode: document.getElementById('mode'),
-    focusBar: document.getElementById('focusBar'),
+    done: document.getElementById('done'),
+    status: document.getElementById('status'),
+    ovTitle: document.getElementById('ovTitle'),
+    ovText: document.getElementById('ovText'),
   };
 
-  const LS_BEST = "noir_flip_best_v1";
-  let best = +localStorage.getItem(LS_BEST) || 0;
-  els.best.textContent = best;
-
-  let running=false, paused=false;
-  let tLeft=25.0;
-
-  let score=0, combo=1, streak=0;
-  let focus=0;            // 0..100
-  let focusMode=false;    // x2 очки
-
-  let hard=true;
-  let spawnTimer=0;
-
-  // ---------- Particles (black/white) ----------
+  // --- Simple particles (black/white) ---
   const c = els.fx, ctx = c.getContext('2d');
   let w=0,h=0,dpr=1;
   const P=[];
-
   function resize(){
     const r = els.app.getBoundingClientRect();
     dpr = Math.min(2, window.devicePixelRatio||1);
@@ -354,7 +346,6 @@
     c.style.height=r.height+'px';
   }
   window.addEventListener('resize', resize, {passive:true}); resize();
-
   function burst(x,y,n=18,bright=true){
     for(let i=0;i<n;i++){
       const a=Math.random()*Math.PI*2;
@@ -362,11 +353,9 @@
       P.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,r:Math.random()*3+1,bright});
     }
   }
-
   let last=performance.now();
   function tick(now){
     const dt=Math.min(0.033,(now-last)/1000); last=now;
-
     ctx.clearRect(0,0,w,h);
     for(let i=P.length-1;i>=0;i--){
       const p=P[i];
@@ -379,226 +368,298 @@
       ctx.arc(p.x,p.y,p.r*dpr,0,Math.PI*2);
       ctx.fillStyle = p.bright ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)';
       ctx.shadowBlur = 16*dpr;
-      ctx.shadowColor = p.bright ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.18)';
+      ctx.shadowColor = p.bright ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.14)';
       ctx.fill();
       ctx.shadowBlur=0;
     }
 
-    if(running && !paused){
-      tLeft -= dt;
-      if(tLeft<=0){ tLeft=0; endGame(); }
-      els.time.textContent = tLeft.toFixed(1);
-
-      spawnTimer -= dt;
-      if(spawnTimer<=0){
-        spawnOrb();
-        const base = hard ? 0.58 : 0.74;
-        spawnTimer = base * (focusMode?0.78:1) * (0.92 + Math.random()*0.28);
-      }
+    if(running){
+      const t = (performance.now() - t0) / 1000;
+      els.time.textContent = t.toFixed(1);
     }
 
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 
-  // ---------- Helpers ----------
-  function rand(min,max){ return min + Math.random()*(max-min); }
-  function toAppXYFromArena(ax, ay){
-    const a = els.arena.getBoundingClientRect();
-    const app = els.app.getBoundingClientRect();
-    return { x:(a.left-app.left+ax)*dpr, y:(a.top-app.top+ay)*dpr };
+  function appXYFromClient(clientX, clientY){
+    const ra = els.app.getBoundingClientRect();
+    return { x:(clientX-ra.left)*dpr, y:(clientY-ra.top)*dpr };
   }
-  function floatText(ax,ay,text,bright){
-    const div=document.createElement('div');
-    div.textContent=text;
-    div.style.position='absolute';
-    div.style.left=ax+'px'; div.style.top=ay+'px';
-    div.style.transform='translate(-50%,-50%)';
-    div.style.pointerEvents='none';
-    div.style.zIndex='4';
-    div.style.fontWeight='950';
-    div.style.letterSpacing='.4px';
-    div.style.textShadow='0 12px 30px rgba(0,0,0,.6)';
-    div.style.color = bright ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.55)';
-    div.style.opacity='0';
-    div.style.transition='transform .55s ease, opacity .55s ease';
-    els.app.appendChild(div);
-    requestAnimationFrame(()=>{
-      div.style.opacity='1';
-      div.style.transform='translate(-50%,-86%)';
-    });
-    setTimeout(()=>{
-      div.style.opacity='0';
-      div.style.transform='translate(-50%,-120%)';
-    }, 300);
-    setTimeout(()=>div.remove(), 900);
+  function appXYFromElCenter(el){
+    const r = el.getBoundingClientRect();
+    const a = els.app.getBoundingClientRect();
+    return { x:(r.left-a.left+r.width/2)*dpr, y:(r.top-a.top+r.height/2)*dpr };
   }
 
-  // ---------- Orbs ----------
-  function spawnOrb(){
-    const rect = els.arena.getBoundingClientRect();
-    const pad = 70;
-    const x = rand(pad, rect.width - pad);
-    const y = rand(96, rect.height - pad);
+  // --- Game state ---
+  let running = false;
+  let t0 = 0;
+  let placed = 0;
 
-    const r = Math.random();
-    // bright = good, dark = trap
-    let bright = r > (hard ? 0.26 : 0.22); // шанс ловушки
-    // в фокус-режиме больше ловушек
-    if(focusMode && Math.random()>0.55) bright = false;
+  // 6 деталей в стиле “компоненты iPhone” (без логотипов/изображений):
+  // Визуально это абстрактные блоки: экран, камера, плата, батарея, динамик, Taptic.
+  const slots = [
+    { id:'screen',  label:'SCREEN',  x: 14, y: 10, w: 72, h: 46, r: 26 },
+    { id:'camera',  label:'CAM',     x: 12, y: 60, w: 28, h: 20, r: 18 },
+    { id:'board',   label:'BOARD',   x: 46, y: 60, w: 42, h: 24, r: 18 },
+    { id:'battery', label:'BAT',     x: 12, y: 84, w: 50, h: 26, r: 18 },
+    { id:'speaker', label:'SPK',     x: 66, y: 84, w: 22, h: 12, r: 14 },
+    { id:'taptic',  label:'TAPTIC',  x: 66, y: 97, w: 22, h: 13, r: 14 },
+  ];
 
-    const orb = document.createElement('div');
-    orb.className = 'orb ' + (bright ? 'bright' : 'dark');
-    orb.style.left = x + 'px';
-    orb.style.top = y + 'px';
-    orb.innerHTML = `<div class="core">${bright ? '◻' : '◼'}</div>`;
-    els.orbs.appendChild(orb);
-
-    const born = performance.now();
-    const life = hard ? rand(0.70, 1.05) : rand(0.90, 1.25);
-    const scale = rand(0.92, 1.12);
-
-    function anim(){
-      const t = (performance.now()-born)/1000;
-      const p = Math.min(1, t/0.10);
-      orb.style.opacity = String(p);
-      orb.style.transform = `translate(-50%,-50%) scale(${(0.82+p*0.18)*scale})`;
-
-      if(!running || paused){ requestAnimationFrame(anim); return; }
-      if(t > life){
-        // промах по светлому — неприятно (только если светлый)
-        if(bright){
-          combo=1; streak=0;
-          els.combo.textContent='x'+combo;
-          els.comboHint.textContent='промах — комбо сброшено';
-          els.app.classList.add('shake'); setTimeout(()=>els.app.classList.remove('shake'),180);
-        }
-        orb.remove();
-        return;
-      }
-      requestAnimationFrame(anim);
+  // --- Build slots (inside board) ---
+  function buildSlots(){
+    els.board.querySelectorAll('.slot').forEach(s=>s.remove());
+    for(const s of slots){
+      const el = document.createElement('div');
+      el.className = 'slot';
+      el.dataset.id = s.id;
+      el.style.left = s.x + '%';
+      el.style.top  = s.y + '%';
+      el.style.width  = s.w + '%';
+      el.style.height = s.h + '%';
+      el.style.borderRadius = (s.r) + 'px';
+      els.board.appendChild(el);
     }
-    requestAnimationFrame(anim);
+  }
 
-    orb.addEventListener('pointerdown', (ev)=>{
-      ev.preventDefault();
-      if(!running || paused) return;
-      orb.remove();
+  // --- Build pieces, scatter around board ---
+  function buildPieces(){
+    els.piecesWrap.innerHTML = '';
+    placed = 0;
+    els.done.textContent = '0';
 
-      const xy = toAppXYFromArena(x,y);
-      if(bright){
-        streak++;
-        if(streak % 3 === 0) combo = Math.min(9, combo+1);
-        const add = Math.round((10 + (focusMode?4:0)) * combo * (focusMode?2:1));
-        score += add;
-        els.score.textContent = score;
-        els.combo.textContent = 'x'+combo;
-        els.comboHint.textContent = streak>=6 ? 'идеально' : 'держи ритм';
+    const arenaR = els.arena.getBoundingClientRect();
+    const boardR = els.board.getBoundingClientRect();
 
-        focus = Math.min(100, focus + 18);
-        els.focusBar.style.width = focus + '%';
+    // зоны разброса: левый/правый стол
+    const leftZone = { x: 18, y: 130, w: Math.max(80, boardR.left - arenaR.left - 24), h: arenaR.height - 180 };
+    const rightZone= { x: (boardR.right - arenaR.left) + 24, y: 130, w: Math.max(80, arenaR.right - boardR.right - 40), h: arenaR.height - 180 };
 
-        burst(xy.x, xy.y, 22, true);
-        floatText(x, y, '+'+add, true);
+    // если экран маленький — разброс под доской
+    const fallbackZone = { x: 24, y: (boardR.bottom - arenaR.top) + 24, w: arenaR.width - 48, h: Math.max(120, arenaR.height - (boardR.bottom - arenaR.top) - 48) };
 
-        if(focus>=100 && !focusMode){
-          focusMode = true; focus = 0; els.focusBar.style.width='0%';
-          els.mode.textContent = 'Режим: FOCUS (x2)';
-          burst(xy.x, xy.y, 40, true);
-          try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
-          setTimeout(()=>{
-            focusMode=false;
-            els.mode.textContent='Режим: Noir';
-          }, 5200);
+    const zones = (leftZone.w > 90 && rightZone.w > 90) ? [leftZone, rightZone] : [fallbackZone];
+
+    // создать “кусочки” соответствующие слотам
+    for(const s of slots){
+      const p = document.createElement('div');
+      p.className = 'piece';
+      p.dataset.id = s.id;
+      p.textContent = s.label;
+
+      // размер совпадает со слотом (в px относительно board)
+      const bw = boardR.width, bh = boardR.height;
+      const pw = (s.w/100)*bw;
+      const ph = (s.h/100)*bh;
+
+      p.style.width = pw + 'px';
+      p.style.height = ph + 'px';
+      p.style.borderRadius = (s.r) + 'px';
+
+      // позиция случайно в зоне
+      const z = zones[Math.floor(Math.random()*zones.length)];
+      const px = z.x + Math.random()*(Math.max(10, z.w - pw));
+      const py = z.y + Math.random()*(Math.max(10, z.h - ph));
+      p.style.left = px + 'px';
+      p.style.top  = py + 'px';
+
+      enableDrag(p);
+      els.piecesWrap.appendChild(p);
+    }
+  }
+
+  // --- Drag & snap ---
+  function enableDrag(el){
+    let pointerId = null;
+    let startX=0, startY=0, baseX=0, baseY=0;
+    let dragging=false;
+
+    el.addEventListener('pointerdown', (e)=>{
+      if(!running) return;
+      if(el.classList.contains('placed')) return;
+      pointerId = e.pointerId;
+      el.setPointerCapture(pointerId);
+      dragging=true;
+
+      const r = el.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      baseX = parseFloat(el.style.left);
+      baseY = parseFloat(el.style.top);
+
+      el.style.zIndex = '10';
+    });
+
+    el.addEventListener('pointermove', (e)=>{
+      if(!dragging || e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      el.style.left = (baseX + dx) + 'px';
+      el.style.top  = (baseY + dy) + 'px';
+    });
+
+    el.addEventListener('pointerup', (e)=>{
+      if(!dragging || e.pointerId !== pointerId) return;
+      dragging=false;
+      el.releasePointerCapture(pointerId);
+      el.style.zIndex = '';
+
+      // проверить "прилипание" к своему слоту
+      const id = el.dataset.id;
+      const slotEl = els.board.querySelector(`.slot[data-id="${id}"]`);
+      if(!slotEl) return;
+
+      const pr = el.getBoundingClientRect();
+      const sr = slotEl.getBoundingClientRect();
+
+      const pcx = pr.left + pr.width/2;
+      const pcy = pr.top + pr.height/2;
+      const scx = sr.left + sr.width/2;
+      const scy = sr.top + sr.height/2;
+
+      const dist = Math.hypot(pcx-scx, pcy-scy);
+      const snapDist = Math.min(52, Math.max(34, sr.width*0.18)); // адаптивно
+
+      if(dist <= snapDist){
+        // снап: поставить точно на слот (в координатах арены)
+        const arenaR = els.arena.getBoundingClientRect();
+        const left = (sr.left - arenaR.left);
+        const top  = (sr.top  - arenaR.top);
+        el.style.left = left + 'px';
+        el.style.top  = top  + 'px';
+        el.classList.add('placed');
+        slotEl.classList.add('ok');
+        placed++;
+        els.done.textContent = String(placed);
+
+        // fx
+        const xy = appXYFromElCenter(slotEl);
+        burst(xy.x, xy.y, 26, true);
+
+        try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
+        els.status.textContent = placed === slots.length
+          ? 'Готово! iPhone собран.'
+          : 'Отлично! Продолжай.';
+
+        if(placed === slots.length){
+          win();
         }
       } else {
-        // ловушка
-        score = Math.max(0, score - 22);
-        combo=1; streak=0;
-        els.score.textContent = score;
-        els.combo.textContent = 'x1';
-        els.comboHint.textContent = 'ловушка! минус очки';
-        focus = Math.max(0, focus - 28);
-        els.focusBar.style.width = focus + '%';
-        burst(xy.x, xy.y, 18, false);
-        floatText(x, y, '-22', false);
-        els.app.classList.add('shake'); setTimeout(()=>els.app.classList.remove('shake'),180);
-        try{ TG?.HapticFeedback?.impactOccurred?.('heavy'); }catch(e){}
+        // маленькая “ошибка”
+        els.app.classList.add('shake');
+        setTimeout(()=>els.app.classList.remove('shake'),180);
+        try{ TG?.HapticFeedback?.impactOccurred?.('medium'); }catch(e){}
       }
-    }, {passive:false});
+    });
   }
 
-  // ---------- Game flow ----------
-  function reset(){
-    score=0; combo=1; streak=0; focus=0; focusMode=false;
-    tLeft=25.0; spawnTimer=0.15;
-    els.score.textContent='0';
-    els.combo.textContent='x1';
-    els.comboHint.textContent='лови ритм';
-    els.time.textContent=tLeft.toFixed(1);
-    els.focusBar.style.width='0%';
-    els.mode.textContent='Режим: Noir';
-    els.orbs.innerHTML='';
+  function resetBoardVisual(){
+    els.board.querySelectorAll('.slot').forEach(s=>s.classList.remove('ok'));
   }
 
-  function start(){
-    reset();
-    running=true; paused=false;
-    els.overlay.style.display='none';
-    els.startBtn.textContent='⏸ Пауза';
-  }
-
-  function togglePause(){
-    if(!running) return;
-    paused=!paused;
-    els.startBtn.textContent = paused ? '▶ Продолжить' : '⏸ Пауза';
-    els.comboHint.textContent = paused ? 'пауза' : 'поехали';
-  }
-
-  function endGame(){
-    running=false; paused=false;
-    els.orbs.innerHTML='';
-    if(score>best){ best=score; localStorage.setItem(LS_BEST, best); }
-    els.best.textContent=best;
-
-    // auto send (если TG)
-    sendResult(false);
-
-    els.overlay.style.display='grid';
-    els.overlay.querySelector('h1').textContent='Раунд окончен';
-    els.overlay.querySelector('p').innerHTML =
-      `Твой счёт: <b>${score}</b> • рекорд: <b>${best}</b><br><span style="color:rgba(255,255,255,.62)">Светлое/тёмное — простая дуэль внимания.</span>`;
-    els.startBtn.textContent='▶ Играть';
-  }
-
+  // --- Win / overlay ---
   function sendResult(manual){
-    const data = JSON.stringify({ game:'noir_flip', score, best, hard, manual:!!manual, ts:Date.now() });
+    const time = parseFloat(els.time.textContent);
+    const data = JSON.stringify({
+      game:'noir_ipuzzle',
+      placed, total: slots.length,
+      time,
+      win: placed===slots.length,
+      manual: !!manual,
+      ts: Date.now()
+    });
     try{
       if(TG?.sendData){
         TG.sendData(data);
-        TG?.HapticFeedback?.impactOccurred?.('light');
+        TG?.HapticFeedback?.notificationOccurred?.('success');
       }
     }catch(e){}
   }
 
-  // ---------- UI ----------
+  function win(){
+    running=false;
+    sendResult(false);
+
+    els.overlay.style.display='grid';
+    els.ovTitle.textContent = 'Собрано 🎉';
+    els.ovText.innerHTML = `Ты собрал iPhone за <b>${els.time.textContent}s</b>.<br><span style="color:rgba(255,255,255,.62)">Можешь отправить результат боту или сыграть снова.</span>`;
+    // кнопки в оверлее уже есть — оставляем
+    const xy = appXYFromElCenter(els.board);
+    burst(xy.x, xy.y, 60, true);
+  }
+
+  // --- Flow ---
+  function start(){
+    reset();
+    running=true;
+    t0 = performance.now();
+    els.overlay.style.display='none';
+    els.startBtn.textContent = '⏸ Пауза';
+    els.status.textContent = 'Собирай: перетаскивай детали в контур.';
+  }
+  function togglePause(){
+    if(!running) return;
+    running=false;
+    els.startBtn.textContent = '▶ Продолжить';
+    els.status.textContent = 'Пауза';
+  }
+  function resume(){
+    if(running) return;
+    running=true;
+    // сдвинем t0, чтобы время продолжилось корректно
+    const shown = parseFloat(els.time.textContent);
+    t0 = performance.now() - shown*1000;
+    els.startBtn.textContent = '⏸ Пауза';
+    els.status.textContent = 'Продолжай!';
+  }
+
+  function reset(){
+    running=false;
+    els.time.textContent = '0.0';
+    els.done.textContent = '0';
+    els.startBtn.textContent = '▶ Старт';
+    resetBoardVisual();
+    buildSlots();
+    buildPieces();
+  }
+
+  // --- UI bindings ---
   els.playBtn.addEventListener('click', start);
-  els.startBtn.addEventListener('click', ()=>{ if(!running) start(); else togglePause(); });
-  els.howBtn.addEventListener('click', ()=>{
-    els.overlay.querySelector('h1').textContent='Как играть';
-    els.overlay.querySelector('p').innerHTML =
-      `Тапай <b>◻ светлые</b> круги — получаешь очки и накапливаешь “фокус”.<br>
-       Если нажмёшь <b>◼ тёмный</b> — теряешь очки и комбо.<br>
-       Когда фокус заполнится — 5 секунд <b>x2</b> к очкам.`;
+  els.startBtn.addEventListener('click', ()=>{
+    if(els.overlay.style.display !== 'none') start();
+    else if(!running && parseFloat(els.time.textContent) > 0) resume();
+    else if(!running) start();
+    else togglePause();
   });
-  els.hardTag.addEventListener('click', ()=>{
-    hard=!hard;
-    els.hardTag.classList.toggle('on', hard);
+  els.resetBtn.addEventListener('click', ()=>{
+    els.overlay.style.display='none';
+    reset();
   });
   els.sendBtn.addEventListener('click', ()=>sendResult(true));
-  window.addEventListener('keydown', (e)=>{
-    if(e.code==='Space'){ e.preventDefault(); if(!running) start(); else togglePause(); }
+
+  els.howBtn.addEventListener('click', ()=>{
+    els.ovTitle.textContent = 'Как играть';
+    els.ovText.innerHTML =
+      `Нажми <b>Старт</b>.<br>
+       Перетаскивай детали (SCREEN, CAM, BOARD, BAT, SPK, TAPTIC) в соответствующие “слоты” внутри контура.<br>
+       Если деталь близко к месту — она <b>прилипнет</b>. Собери все 6 быстрее!`;
   });
+
+  // Space = старт/пауза/продолжить
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){
+      e.preventDefault();
+      if(els.overlay.style.display !== 'none') start();
+      else if(!running && parseFloat(els.time.textContent) > 0) resume();
+      else if(!running) start();
+      else togglePause();
+    }
+  });
+
+  // initial
+  reset();
 
 })();
 </script>
