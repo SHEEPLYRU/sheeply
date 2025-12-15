@@ -7,12 +7,10 @@
   <style>
     :root{
       --bg:#070707;
-      --panel: rgba(255,255,255,.06);
       --border: rgba(255,255,255,.14);
       --txt: rgba(255,255,255,.92);
       --muted: rgba(255,255,255,.62);
       --shadow: 0 18px 60px rgba(0,0,0,.55);
-      --r: 22px;
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--txt);
@@ -49,7 +47,7 @@
       border:1px solid rgba(255,255,255,.12);
       box-shadow: 0 12px 30px rgba(0,0,0,.25);
     }
-    .mini{display:flex;flex-direction:column;gap:2px;min-width:74px}
+    .mini{display:flex;flex-direction:column;gap:2px;min-width:66px}
     .mini .k{font-size:11px;color:var(--muted);letter-spacing:.35px}
     .mini .v{font-size:14px;font-weight:950;letter-spacing:.5px}
     .btn{
@@ -116,6 +114,8 @@
       <div class="pill">
         <div class="mini"><div class="k">S</div><div class="v" id="s">0</div></div>
         <div class="mini"><div class="k">B</div><div class="v" id="b">0</div></div>
+        <div class="mini"><div class="k">C</div><div class="v" id="c">0</div></div>
+        <div class="mini"><div class="k">X</div><div class="v" id="x">0</div></div>
         <div class="mini"><div class="k">W</div><div class="v" id="w">⬜</div></div>
       </div>
       <div style="display:flex;gap:10px">
@@ -131,7 +131,7 @@
           <button class="wide" id="mode">HARD</button>
         </div>
         <div class="tiny">
-          <span>tap = shift</span>
+          <span>hold = move • tap = shift</span>
           <span>SHEEPLY WORLD</span>
         </div>
       </div>
@@ -141,7 +141,6 @@
 
 <script>
 (() => {
-  // Telegram WebApp (works in browser)
   const TG = window.Telegram?.WebApp;
   try{ TG?.ready(); TG?.expand(); }catch(e){}
 
@@ -156,6 +155,8 @@
     send: document.getElementById('send'),
     s: document.getElementById('s'),
     b: document.getElementById('b'),
+    c: document.getElementById('c'),
+    x: document.getElementById('x'),
     w: document.getElementById('w'),
   };
 
@@ -188,83 +189,230 @@
   }
 
   // ----- Game state -----
-  const LS_BEST="sheeply_world_best_v1";
+  const LS_BEST="sheeply_world_best_v2";
   let best = +localStorage.getItem(LS_BEST) || 0;
 
   let running=false, paused=false, hard=true;
-  let world = 1; // 1 = white world (white platforms solid), -1 = black world
+  let world = 1; // 1 = white world solid, -1 = black world solid
 
   // Player (sheep-ish)
   const player = { x:0, y:0, vx:0, vy:0, r:0, alive:true, onGround:false };
   let camX = 0;
   let score = 0;
 
-  // Level blocks
-  // type: 1 white, -1 black, 0 neutral (always solid) [we mainly use 1/-1]
-  const blocks = [];
+  // Ideal timing
+  let combo = 0;
+  let comboMax = 0;
+  let lastShiftAt = -1;
+  let lastShiftWorld = 1;
+  let perfectFlash = 0;
+
+  // Movement input: HOLD = move, TAP = shift
+  let holdMove = false;
+  let downAt = 0;
+
+  // Level
+  const blocks = [];        // {x,y,w,h,type}
+  const checkpoints = [];   // {id,x,y,active}
   let nextSpawnX = 0;
 
-  // Difficulty
+  // Respawn data
+  let cpId = 0;
+  let cpX = 0;
+  let cpY = 0;
+  let cpWorld = 1;
+  let cpScore = 0;
+
   function rand(a,b){return a+Math.random()*(b-a)}
   function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 
-  function reset(){
-    running=false; paused=false;
-    world = 1;
-    score = 0;
-    camX = 0;
+  function activeSolid(type){
+    if(type===0) return true;       // neutral always solid
+    return type === world;
+  }
 
-    player.x = W*0.28;
-    player.y = H*0.46;
-    player.vx = 0; player.vy = 0;
-    player.r = Math.max(10*dpr, Math.min(W,H)*0.022);
-    player.alive = true;
-    player.onGround = false;
-
-    blocks.length = 0;
-    nextSpawnX = 0;
-
-    // build initial runway
-    const groundY = H*0.72;
-    for(let i=0;i<12;i++){
-      const w = rand(120, 220)*dpr;
-      const gap = rand(34, 78)*dpr;
-      const type = (Math.random()<0.55)? 1 : -1;
-      pushBlock(nextSpawnX, groundY, w, 20*dpr, type);
-      nextSpawnX += w + gap;
-    }
-
-    updateHUD();
+  function updateHUD(){
+    el.s.textContent = String(score);
+    el.b.textContent = String(best);
+    el.c.textContent = String(cpId);
+    el.x.textContent = String(combo);
+    el.w.textContent = world===1 ? "⬜" : "⬛";
   }
 
   function pushBlock(x, y, w, h, type){
     blocks.push({x,y,w,h,type});
   }
 
-  function activeSolid(type){
-    // neutral (0) always solid
-    if(type===0) return true;
-    return type === world;
+  function pushCheckpoint(x, y){
+    const id = checkpoints.length + 1;
+    checkpoints.push({id, x, y, active:false});
+  }
+
+  function setCheckpoint(id, x, y){
+    cpId = id;
+    cpX = x;
+    cpY = y;
+    cpWorld = world;
+    cpScore = score;
+    updateHUD();
+    const sx = player.x - camX;
+    burst(sx, player.y, 26, true);
+    try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
+  }
+
+  function reset(){
+    running=false; paused=false;
+    world = 1;
+    score = 0;
+    combo = 0; comboMax = 0;
+    lastShiftAt = -1;
+    perfectFlash = 0;
+
+    camX = 0;
+    holdMove = false;
+
+    player.r = Math.max(10*dpr, Math.min(W,H)*0.022);
+    player.x = W*0.28;
+    player.y = H*0.46;
+    player.vx = 0; player.vy = 0;
+    player.alive = true;
+    player.onGround = false;
+
+    blocks.length = 0;
+    checkpoints.length = 0;
+    nextSpawnX = 0;
+
+    // initial checkpoint at start
+    cpId = 0;
+    cpX = player.x;
+    cpY = player.y;
+    cpWorld = world;
+    cpScore = 0;
+
+    // build initial runway + early checkpoint
+    const groundY = H*0.72;
+    for(let i=0;i<14;i++){
+      const w = rand(120, 240)*dpr;
+      const gap = rand(38, 84)*dpr;
+      const type = (Math.random()<0.55)? 1 : -1;
+      pushBlock(nextSpawnX, groundY, w, 20*dpr, type);
+      // place a checkpoint every ~5 platforms
+      if(i===4) pushCheckpoint(nextSpawnX + w*0.72, groundY - 36*dpr);
+      nextSpawnX += w + gap;
+    }
+
+    updateHUD();
   }
 
   function shift(){
     if(!running || paused) return;
     world *= -1;
     el.w.textContent = world===1 ? "⬜" : "⬛";
+    lastShiftAt = performance.now();
+    lastShiftWorld = world;
 
     const cx = player.x - camX;
-    const cy = player.y;
-    burst(cx, cy, 22, world===1);
-
+    burst(cx, player.y, 22, world===1);
     try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
   }
 
-  // Input: tap anywhere to shift
+  function start(){
+    reset();
+    running=true; paused=false;
+    el.ov.style.display="none";
+    el.pause.textContent="⏸";
+    try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
+  }
+
+  function respawn(){
+    // back to last checkpoint (sheep does NOT move unless you hold)
+    world = cpWorld;
+    score = cpScore;
+    combo = 0;
+
+    player.x = cpX;
+    player.y = cpY;
+    player.vx = 0; player.vy = 0;
+    player.onGround = false;
+
+    camX = player.x - W*0.30;
+
+    perfectFlash = 0.7;
+    burst(player.x - camX, player.y, 28, true);
+    updateHUD();
+  }
+
+  function die(){
+    if(!player.alive) return;
+    player.alive=false;
+
+    el.app.classList.add('shake');
+    setTimeout(()=>el.app.classList.remove('shake'),180);
+    try{ TG?.HapticFeedback?.notificationOccurred?.('error'); }catch(e){}
+
+    // if no checkpoint yet, show overlay; otherwise respawn
+    if(cpId === 0){
+      running=false; paused=false;
+      best = Math.max(best, score);
+      localStorage.setItem(LS_BEST, best);
+      send(false);
+      el.ov.style.display="grid";
+      el.play.textContent="PLAY";
+      return;
+    }
+
+    // checkpoint mode: instant respawn
+    player.alive=true;
+    respawn();
+  }
+
+  function endRun(){
+    running=false; paused=false;
+    best = Math.max(best, score);
+    localStorage.setItem(LS_BEST, best);
+    send(false);
+    el.ov.style.display="grid";
+    el.play.textContent="PLAY";
+  }
+
+  function send(manual){
+    const data = JSON.stringify({
+      game:"sheeply_world",
+      score, best: Math.max(best, score),
+      checkpoint: cpId,
+      comboMax,
+      hard,
+      ts: Date.now(),
+      manual: !!manual
+    });
+    try{
+      if(TG?.sendData){
+        TG.sendData(data);
+        TG?.HapticFeedback?.impactOccurred?.('light');
+      }
+    }catch(e){}
+  }
+
+  // ---- Controls: HOLD to move, TAP to shift ----
   el.game.addEventListener('pointerdown', (e)=>{
     e.preventDefault();
     if(el.ov.style.display !== "none"){ start(); return; }
-    shift();
+    downAt = performance.now();
+    holdMove = true;
+    try{ el.game.setPointerCapture(e.pointerId); }catch(_){}
   }, {passive:false});
+
+  el.game.addEventListener('pointerup', (e)=>{
+    e.preventDefault();
+    holdMove = false;
+    const dt = performance.now() - downAt;
+    // short press => shift
+    if(dt < 170) shift();
+    try{ el.game.releasePointerCapture(e.pointerId); }catch(_){}
+  }, {passive:false});
+
+  el.game.addEventListener('pointercancel', ()=>{ holdMove=false; }, {passive:true});
+
   window.addEventListener('keydown', (e)=>{
     if(e.code==="Space"){
       e.preventDefault();
@@ -286,122 +434,130 @@
   });
   el.send.addEventListener('click', ()=>send(true));
 
-  function start(){
-    reset();
-    running=true; paused=false;
-    el.ov.style.display="none";
-    el.pause.textContent="⏸";
-    try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
-  }
-
-  function die(){
-    if(!player.alive) return;
-    player.alive=false;
-    running=false; paused=false;
-
-    best = Math.max(best, score);
-    localStorage.setItem(LS_BEST, best);
-
-    send(false);
-
-    // overlay back
-    el.ov.style.display="grid";
-    el.play.textContent="PLAY";
-
-    el.app.classList.add('shake');
-    setTimeout(()=>el.app.classList.remove('shake'),180);
-
-    try{ TG?.HapticFeedback?.notificationOccurred?.('error'); }catch(e){}
-  }
-
-  function send(manual){
-    const data = JSON.stringify({
-      game:"sheeply_world",
-      score, best,
-      hard,
-      ts: Date.now(),
-      manual: !!manual
-    });
-    try{
-      if(TG?.sendData){
-        TG.sendData(data);
-        TG?.HapticFeedback?.impactOccurred?.('light');
-      }
-    }catch(e){}
-  }
-
-  function updateHUD(){
-    el.s.textContent = String(score);
-    el.b.textContent = String(best);
-    el.w.textContent = world===1 ? "⬜" : "⬛";
-  }
-
-  // Physics helpers
+  // ---- Physics helpers ----
   function aabb(px,py, pw,ph, bx,by, bw,bh){
     return px < bx+bw && px+pw > bx && py < by+bh && py+ph > by;
+  }
+
+  function spawnAhead(){
+    const groundY = H*0.72;
+    while(nextSpawnX < camX + W*2.1){
+      const w = rand(120, hard?220:250)*dpr;
+      const gap = rand(hard?44:36, hard?92:78)*dpr;
+
+      const elevChance = hard ? 0.22 : 0.16;
+      const y = (Math.random()<elevChance) ? groundY - rand(70, 150)*dpr : groundY;
+      const h = (y===groundY) ? 20*dpr : 18*dpr;
+
+      // more alternation = more shifting
+      const type = (Math.random() < (hard?0.50:0.56)) ? 1 : -1;
+
+      pushBlock(nextSpawnX, y, w, h, type);
+
+      // occasional opposite bridge above (forces shift)
+      if(hard && Math.random()<0.22){
+        const opp = -type;
+        pushBlock(nextSpawnX + w*0.22, y - rand(64, 110)*dpr, w*0.52, 16*dpr, opp);
+      }
+
+      // checkpoints every ~900..1200px
+      if(checkpoints.length < 18 && (checkpoints.length===0 || (nextSpawnX - checkpoints[checkpoints.length-1].x) > rand(900,1200)*dpr)){
+        pushCheckpoint(nextSpawnX + w*0.70, y - 36*dpr);
+      }
+
+      nextSpawnX += w + gap;
+    }
+
+    // cleanup
+    while(blocks.length && blocks[0].x + blocks[0].w < camX - 700*dpr) blocks.shift();
+  }
+
+  // ---- Perfect timing ----
+  // If you SHIFT shortly before landing on a platform that requires the new world,
+  // you get PERFECT: score boost + combo++.
+  function maybePerfectOnLanding(landedBlockType){
+    const now = performance.now();
+    const windowMs = hard ? 170 : 200;
+    if(lastShiftAt < 0) return false;
+
+    const dt = now - lastShiftAt;
+    const usedShift = (dt <= windowMs);
+    const requiresThisWorld = (landedBlockType !== 0) && (landedBlockType === world);
+
+    // only count if the world actually changed recently
+    const changed = (world === lastShiftWorld);
+
+    if(usedShift && requiresThisWorld && changed){
+      combo++;
+      comboMax = Math.max(comboMax, combo);
+      const bonus = 12 + Math.min(6, combo)*4;
+      score += bonus;
+      perfectFlash = 1.0;
+      burst(player.x - camX, player.y, 30, true);
+      try{ TG?.HapticFeedback?.impactOccurred?.('medium'); }catch(e){}
+      return true;
+    }
+    return false;
   }
 
   function step(dt){
     if(!running || paused) return;
 
+    spawnAhead();
+
+    // movement: sheep only moves while HOLD (so it "doesn't fall by itself")
     const speed = (hard ? 320 : 280) * dpr;
-    const grav  = (hard ? 1800 : 1550) * dpr;
-    const jumpV = (hard ? 620 : 580) * dpr;
+    player.vx = holdMove ? speed : 0;
 
-    // auto-run
-    player.vx = speed;
+    const grav  = (hard ? 1850 : 1600) * dpr;
+    const jumpV = (hard ? 610 : 570) * dpr;
 
-    // gravity
+    // gravity always, but if you're not moving you typically stay safely on platform
     player.vy += grav * dt;
 
-    // move X
     let nx = player.x + player.vx*dt;
     let ny = player.y + player.vy*dt;
     player.onGround = false;
 
-    // collision with active blocks (simple: resolve Y only for platforming feel)
-    // We also make "inactive" blocks act as hazards if you touch them (nice SHIFT feel).
     const pw = player.r*2, ph = player.r*2;
     const px = nx - player.r, py = ny - player.r;
 
-    // world bounds / floor death
-    if(ny > H + 200*dpr) { die(); return; }
+    // death if fall far
+    if(ny > H + 240*dpr){ die(); return; }
 
-    // ensure we always have blocks ahead
-    spawnAhead();
-
-    // check collisions
+    // collisions
     for(const b of blocks){
-      const bx = b.x, by = b.y, bw=b.w, bh=b.h;
-
-      // only consider nearby blocks
+      const bx=b.x, by=b.y, bw=b.w, bh=b.h;
       if(bx + bw < camX - 200*dpr) continue;
       if(bx > camX + W + 400*dpr) continue;
 
       if(aabb(px,py,pw,ph, bx,by,bw,bh)){
         if(activeSolid(b.type)){
           // landing from above
-          const prevY = (player.y - player.r);
-          if(prevY + ph <= by + 6*dpr && player.vy > 0){
+          const prevBottom = (player.y + player.r);
+          if(prevBottom <= by + 6*dpr && player.vy > 0){
             ny = by - player.r;
             player.vy = 0;
             player.onGround = true;
+
+            // PERFECT timing check
+            maybePerfectOnLanding(b.type);
           } else {
-            // side hit / inside: small bounce, but keep moving
+            // side/inside: tiny bounce
             player.vy *= -0.15;
           }
         } else {
-          // touched inactive = glitch/hazard
+          // touching inactive is fatal
           burst((player.x-camX), player.y, 18, false);
+          combo = 0;
           die();
           return;
         }
       }
     }
 
-    // auto-jump when grounded at platform edge (tiny assist so it feels good on tap-only)
-    if(player.onGround){
-      // look a bit ahead under feet
+    // auto jump assist ONLY when moving (so standing still never "auto-falls")
+    if(player.onGround && holdMove){
       const lookX = nx + player.r*1.4;
       const footY = ny + player.r + 6*dpr;
       let hasFloor = false;
@@ -414,56 +570,62 @@
       if(!hasFloor){
         player.vy = -jumpV;
         player.onGround = false;
-        burst((player.x-camX), player.y, 10, true);
+        // (no points for auto jump)
       }
     }
 
     player.x = nx;
     player.y = ny;
 
-    // camera follows
+    // camera
     camX = player.x - W*0.30;
 
-    // score = distance
-    score = Math.max(score, Math.floor((player.x / (120*dpr))));
+    // score = distance progress (but only while moving)
+    if(holdMove){
+      score = Math.max(score, Math.floor((player.x / (120*dpr))));
+    }
+
+    // checkpoints pickup (neutral “flag”)
+    for(const cp of checkpoints){
+      if(cp.active) continue;
+      const dx = player.x - cp.x;
+      const dy = player.y - cp.y;
+      if(Math.hypot(dx,dy) < 34*dpr){
+        cp.active = true;
+        setCheckpoint(cp.id, cp.x, cp.y - 18*dpr);
+      }
+    }
+
+    // fade perfect flash
+    perfectFlash = Math.max(0, perfectFlash - dt*1.6);
+
+    // combo decay if you stop moving too long (keeps it “timing-based”)
+    if(!holdMove && combo>0){
+      combo = Math.max(0, combo - dt*0.8);
+      combo = Math.floor(combo);
+    }
+
+    // update best live
+    best = Math.max(best, score);
+    localStorage.setItem(LS_BEST, best);
+
     updateHUD();
   }
 
-  function spawnAhead(){
-    const groundY = H*0.72;
-    // keep generating until far enough
-    while(nextSpawnX < camX + W*1.8){
-      const w = rand(110, hard?210:240)*dpr;
-      const gap = rand(hard?44:36, hard?92:78)*dpr;
-
-      // sometimes elevated platform (requires SHIFT timing, still auto-jumps between solids)
-      const elevChance = hard ? 0.22 : 0.16;
-      const y = (Math.random()<elevChance) ? groundY - rand(70, 150)*dpr : groundY;
-      const h = (y===groundY) ? 20*dpr : 18*dpr;
-
-      // alternate blocks types more in hard mode
-      const type = (Math.random() < (hard?0.50:0.56)) ? 1 : -1;
-
-      pushBlock(nextSpawnX, y, w, h, type);
-
-      // add occasional "bridge" of opposite type above (forces shift)
-      if(hard && Math.random()<0.22){
-        const opp = -type;
-        pushBlock(nextSpawnX + w*0.22, y - rand(64, 110)*dpr, w*0.52, 16*dpr, opp);
-      }
-
-      nextSpawnX += w + gap;
-    }
-
-    // cleanup old
-    while(blocks.length && blocks[0].x + blocks[0].w < camX - 600*dpr){
-      blocks.shift();
-    }
+  // ----- Render -----
+  function roundRect(ctx, x,y,w,h,r, fill){
+    r = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y, x+w,y+h, r);
+    ctx.arcTo(x+w,y+h, x,y+h, r);
+    ctx.arcTo(x,y+h, x,y, r);
+    ctx.arcTo(x,y, x+w,y, r);
+    ctx.closePath();
+    if(fill) ctx.fill(); else ctx.stroke();
   }
 
-  // ----- Render -----
   function draw(){
-    // background
     g.clearRect(0,0,W,H);
     g.fillStyle = "rgba(0,0,0,1)";
     g.fillRect(0,0,W,H);
@@ -471,12 +633,12 @@
     // subtle parallax grid
     g.globalAlpha = 0.06;
     g.fillStyle = "rgba(255,255,255,1)";
-    const step = Math.floor(90*dpr);
-    const off = ((-camX*0.2) % step + step) % step;
-    for(let x = -off; x < W; x += step) g.fillRect(x, 0, 1, H);
+    const stepG = Math.floor(90*dpr);
+    const off = ((-camX*0.2) % stepG + stepG) % stepG;
+    for(let x = -off; x < W; x += stepG) g.fillRect(x, 0, 1, H);
     g.globalAlpha = 1;
 
-    // world tint: slight invert feel
+    // world tint
     if(world===-1){
       g.globalAlpha = 0.10;
       g.fillStyle = "rgba(255,255,255,1)";
@@ -484,7 +646,7 @@
       g.globalAlpha = 1;
     }
 
-    // draw blocks
+    // blocks
     for(const b of blocks){
       const x = b.x - camX;
       if(x > W+300*dpr || x + b.w < -300*dpr) continue;
@@ -492,7 +654,6 @@
       const solid = activeSolid(b.type);
       const isWhite = b.type===1;
 
-      // active = bright, inactive = faint outline
       if(solid){
         g.fillStyle = isWhite ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.22)";
         g.shadowBlur = 14*dpr;
@@ -506,18 +667,46 @@
       }
     }
 
-    // exit vibe (far right glow line)
-    g.globalAlpha = 0.08;
-    g.fillStyle = "rgba(255,255,255,1)";
-    g.fillRect(W-3*dpr, 0, 3*dpr, H);
-    g.globalAlpha = 1;
+    // checkpoints (neutral flags)
+    for(const cp of checkpoints){
+      const x = cp.x - camX;
+      if(x < -120*dpr || x > W+120*dpr) continue;
+      const y = cp.y;
 
-    // sheep (simple: body + head)
+      g.save();
+      g.globalAlpha = cp.active ? 0.90 : 0.35;
+      g.strokeStyle = "rgba(255,255,255,.55)";
+      g.lineWidth = 2*dpr;
+
+      // pole
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x, y + 34*dpr);
+      g.stroke();
+
+      // flag
+      g.fillStyle = "rgba(255,255,255,.75)";
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + 16*dpr, y + 6*dpr);
+      g.lineTo(x, y + 12*dpr);
+      g.closePath();
+      g.fill();
+
+      // dot
+      g.globalAlpha = cp.active ? 0.80 : 0.20;
+      g.beginPath();
+      g.arc(x, y+40*dpr, 3.2*dpr, 0, Math.PI*2);
+      g.fillStyle="rgba(255,255,255,1)";
+      g.fill();
+      g.restore();
+    }
+
+    // sheep
     const sx = player.x - camX;
     const sy = player.y;
     const r = player.r;
 
-    // body
     g.save();
     g.translate(sx, sy);
     g.shadowBlur = 18*dpr;
@@ -527,19 +716,26 @@
     g.ellipse(0, 0, r*1.25, r*1.0, 0, 0, Math.PI*2);
     g.fill();
 
-    // head (slightly darker)
     g.shadowBlur = 0;
     g.fillStyle = "rgba(0,0,0,.55)";
     g.beginPath();
     g.ellipse(r*0.95, r*0.10, r*0.55, r*0.45, 0, 0, Math.PI*2);
     g.fill();
 
-    // tiny eye (white dot)
     g.fillStyle = "rgba(255,255,255,.85)";
     g.beginPath();
     g.arc(r*1.10, r*0.00, r*0.10, 0, Math.PI*2);
     g.fill();
     g.restore();
+
+    // perfect flash (minimal feedback)
+    if(perfectFlash > 0){
+      g.save();
+      g.globalAlpha = 0.14 * perfectFlash;
+      g.fillStyle = "rgba(255,255,255,1)";
+      g.fillRect(0,0,W,H);
+      g.restore();
+    }
 
     // vignette
     g.save();
@@ -572,18 +768,6 @@
     requestAnimationFrame(draw);
   }
 
-  function roundRect(ctx, x,y,w,h,r, fill){
-    r = Math.min(r, w/2, h/2);
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y, x+w,y+h, r);
-    ctx.arcTo(x+w,y+h, x,y+h, r);
-    ctx.arcTo(x,y+h, x,y, r);
-    ctx.arcTo(x,y, x+w,y, r);
-    ctx.closePath();
-    if(fill) ctx.fill(); else ctx.stroke();
-  }
-
   // ----- Main loop -----
   let last = performance.now();
   function loop(now){
@@ -595,6 +779,7 @@
 
   // init
   el.b.textContent = String(best);
+  el.pause.textContent="⏸";
   reset();
   el.ov.style.display="grid";
   requestAnimationFrame(draw);
