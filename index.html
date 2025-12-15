@@ -17,17 +17,20 @@
   .hud{
     position:absolute;top:16px;left:0;right:0;z-index:10;
     display:flex;justify-content:center;gap:18px;
-    font-weight:950;letter-spacing:.6px; user-select:none;
-    pointer-events:none;
+    font-weight:950;letter-spacing:.6px;
+    pointer-events:none; user-select:none;
   }
   .hud span{opacity:.82}
 
-  .overlay{
-    position:absolute;inset:0;z-index:20;
+  .overlay,.promoOverlay{
+    position:absolute;inset:0;
     display:grid;place-items:center;
     background:rgba(0,0,0,.65);
     backdrop-filter:blur(10px);
   }
+  .overlay{z-index:20}
+  .promoOverlay{z-index:30;display:none}
+
   .panel{
     width:min(420px,92vw);
     border-radius:24px;
@@ -38,44 +41,34 @@
   }
   .btn{
     width:100%;
-    padding:14px 18px;border-radius:18px;
+    padding:14px 18px;
+    border-radius:18px;
     border:1px solid rgba(255,255,255,.20);
     background:rgba(255,255,255,.10);
     color:#fff;font-weight:950;letter-spacing:1px;
     cursor:pointer;
   }
   .btn:active{transform:translateY(1px) scale(.99)}
-  .row{display:flex;gap:10px}
-  .small{
-    width:52px;min-width:52px;max-width:52px;
-    padding:14px 0;border-radius:18px;
-  }
-  .flash{
-    position:absolute;inset:0;
-    background:#fff;
-    opacity:0;
-    pointer-events:none;
-    transition: opacity 90ms linear;
-    z-index:9;
-  }
+  .small{width:56px;min-width:56px;max-width:56px;padding:14px 0}
 
-  /* promo modal */
-  .promoOverlay{
-    position:absolute;inset:0;z-index:30;
-    display:none;place-items:center;
-    background:rgba(0,0,0,.70);
-    backdrop-filter:blur(10px);
-  }
   .codeBox{
     margin-top:12px;
     border-radius:18px;
     border:1px dashed rgba(255,255,255,.28);
-    background:rgba(0,0,0,.25);
-    padding:12px 12px;
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px;
+    display:flex;justify-content:space-between;align-items:center;
     font-weight:950;letter-spacing:1px;
+    background:rgba(0,0,0,.22);
   }
-  .muted{opacity:.72;font-size:12px;letter-spacing:.2px}
+  .muted{opacity:.7;font-size:12px}
+
+  .flash{
+    position:absolute;inset:0;
+    background:#fff;opacity:0;
+    pointer-events:none;
+    transition:opacity 90ms linear;
+    z-index:9;
+  }
 </style>
 </head>
 
@@ -99,18 +92,13 @@
 
   <div class="promoOverlay" id="promoOv">
     <div class="panel">
-      <div style="font-weight:950;letter-spacing:.9px">🎉</div>
-      <div class="muted" style="margin-top:6px">PROMO</div>
-
+      <div class="muted">PROMO</div>
       <div class="codeBox">
         <span id="promoText">SHEEPLYGAME5</span>
         <button class="btn small" id="copyBtn" title="copy">⧉</button>
       </div>
-
-      <div class="muted" style="margin-top:10px">5% OFF</div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn" id="continueBtn">OK</button>
-      </div>
+      <div class="muted" style="margin-top:8px">5% OFF</div>
+      <button class="btn" style="margin-top:12px" id="continueBtn">OK</button>
     </div>
   </div>
 
@@ -122,8 +110,8 @@
   const TG = window.Telegram?.WebApp;
   try { TG?.ready(); TG?.expand(); } catch(e) {}
 
-  const PROMO_CODE = "SHEEPLYGAME5";
   const PROMO_COMBO = 100;
+  const PROMO_CODE = "SHEEPLYGAME5";
 
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d");
@@ -132,142 +120,222 @@
   const scoreEl = document.getElementById("score");
   const comboEl = document.getElementById("combo");
   const ov = document.getElementById("ov");
-
   const promoOv = document.getElementById("promoOv");
   const copyBtn = document.getElementById("copyBtn");
   const continueBtn = document.getElementById("continueBtn");
 
-  // --- Logo ---
+  // logo
   const logo = new Image();
   logo.src = "SHEEPLY_02-2-negate-Photoroom.png";
-  let logoReady = false;
-  logo.onload = () => (logoReady = true);
+  let logoReady=false;
+  logo.onload=()=>logoReady=true;
 
-  let W=0, H=0, dpr=1;
+  let W=0,H=0,dpr=1;
   function resize(){
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    W = Math.floor(window.innerWidth * dpr);
-    H = Math.floor(window.innerHeight * dpr);
-    canvas.width = W; canvas.height = H;
-    canvas.style.width = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
+    dpr=Math.min(2,devicePixelRatio||1);
+    W=Math.floor(innerWidth*dpr);
+    H=Math.floor(innerHeight*dpr);
+    canvas.width=W; canvas.height=H;
+    canvas.style.width=innerWidth+"px";
+    canvas.style.height=innerHeight+"px";
   }
-  window.addEventListener("resize", resize, {passive:true});
-  resize();
+  addEventListener("resize",resize,{passive:true}); resize();
 
+  // game
   let running=false;
   let angle=0;
-  let speed=0.038; // base speed a bit higher
+
+  // speed base + random
+  let speed=0.04;
 
   let score=0;
   let combo=0;
+  let promoShown=false;
 
-  // zone size is now dynamic (radians)
-  let zoneSize = 0.35;
+  // successful hits counter (for "every 10th hit" multi-zones)
+  let hitsTotal = 0;
 
-  // promo only once per run
-  let promoShown = false;
+  // zones: array of {center, size}
+  let zones = [];
+  const MAIN_CENTER = Math.PI*1.5; // 12 o'clock
 
-  function ringR(){ return Math.min(W,H) * 0.25; }
+  // slow motion
+  let slow = 0;           // 0..1
+  let slowT = 0;          // seconds remaining
 
+  function ringR(){ return Math.min(W,H)*0.25; }
   function rand(a,b){ return a + Math.random()*(b-a); }
+  function wrap(a){
+    const two = Math.PI*2;
+    a = a % two;
+    return a < 0 ? a + two : a;
+  }
+  function angDiff(a,b){
+    // minimal circular distance
+    const two = Math.PI*2;
+    let d = Math.abs(a-b);
+    return Math.min(d, two-d);
+  }
 
-  function randomizeZone(){
-    // random range: easier early, tighter later (based on combo)
-    const c = Math.min(120, combo);
-    const t = c / 120; // 0..1
+  function zoneSizeForCombo(){
+    // dynamic difficulty by combo/hits (smaller over time)
+    const t = Math.min(120, combo) / 120; // 0..1
     const max = 0.40 - t*0.14; // 0.40 -> 0.26
     const min = 0.18 - t*0.06; // 0.18 -> 0.12
-    zoneSize = rand(min, max);
+    return rand(min, max);
+  }
+
+  function randomizeSpeed(){
+    // base increases with hitsTotal; then randomize around it
+    const base = 0.038 + hitsTotal*0.00055 + combo*0.00020;
+    speed = rand(base*0.82, base*1.18);
+  }
+
+  function setupNextZones(){
+    const nextHitNumber = hitsTotal + 1; // the upcoming successful hit number
+    const multi = (nextHitNumber % 10 === 0);
+
+    zones.length = 0;
+
+    if(!multi){
+      zones.push({ center: MAIN_CENTER, size: zoneSizeForCombo() });
+      return;
+    }
+
+    // every 10th: 3 zones at once
+    // keep main at 12 o'clock + two satellites
+    const mainSize = zoneSizeForCombo();
+    const off1 = rand(0.55, 1.05); // radians
+    const off2 = rand(0.55, 1.05);
+
+    zones.push({ center: MAIN_CENTER, size: mainSize });
+    zones.push({ center: wrap(MAIN_CENTER + off1), size: rand(mainSize*0.70, mainSize*0.95) });
+    zones.push({ center: wrap(MAIN_CENTER - off2), size: rand(mainSize*0.70, mainSize*0.95) });
+  }
+
+  function triggerSlowMo(){
+    // slow motion burst: strong at start then fades
+    slow = 1;
+    slowT = 0.38; // seconds
+    try{ TG?.HapticFeedback?.impactOccurred?.('medium'); }catch(e){}
+  }
+
+  function showPromo(){
+    promoShown = true;
+    promoOv.style.display="grid";
+    try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
+    try{
+      TG?.sendData?.(JSON.stringify({
+        game:"sheeply_perfect_timing",
+        event:"promo_unlocked",
+        code:PROMO_CODE,
+        combo, score,
+        ts:Date.now()
+      }));
+    }catch(e){}
   }
 
   function start(){
     running=true;
     angle=0;
-    speed=0.038;
     score=0;
     combo=0;
+    hitsTotal=0;
     promoShown=false;
-    randomizeZone();
+
+    slow=0; slowT=0;
+
+    randomizeSpeed();
+    setupNextZones();
+
     ov.style.display="none";
     promoOv.style.display="none";
     try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
   }
   document.getElementById("play").addEventListener("click", start);
 
-  function showPromo(){
-    promoShown = true;
-    promoOv.style.display = "grid";
-    try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
-    // optional: notify bot
-    try{
-      TG?.sendData?.(JSON.stringify({game:"sheeply_perfect_timing", event:"promo_unlocked", code:PROMO_CODE, combo, score, ts:Date.now()}));
-    }catch(e){}
-  }
-
   copyBtn.addEventListener("click", async ()=>{
     try{
       await navigator.clipboard.writeText(PROMO_CODE);
-      flash.style.opacity = "0.18";
-      setTimeout(()=>flash.style.opacity="0", 110);
+      flash.style.opacity="0.18";
+      setTimeout(()=>flash.style.opacity="0",110);
       try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
-    }catch(e){
-      // clipboard may be blocked; still ok
+    }catch(e){}
+  });
+  continueBtn.addEventListener("click", ()=> promoOv.style.display="none");
+
+  function resolveHit(a){
+    // returns {hit:boolean, ideal:boolean, zoneIndex:number, diff:number, size:number}
+    let best = { hit:false, ideal:false, zoneIndex:-1, diff:1e9, size:0 };
+    for(let i=0;i<zones.length;i++){
+      const z = zones[i];
+      const d = angDiff(a, z.center);
+      if(d < best.diff){
+        best.diff = d;
+        best.zoneIndex = i;
+        best.size = z.size;
+      }
+      if(d < z.size){
+        best.hit = true;
+        // ideal is a smaller inner window
+        const idealWin = Math.max(0.045, z.size * 0.18);
+        if(d < idealWin) best.ideal = true;
+      }
     }
-  });
+    return best;
+  }
 
-  continueBtn.addEventListener("click", ()=>{
-    promoOv.style.display="none";
-  });
-
-  // Tap = check timing
   canvas.addEventListener("pointerdown", ()=>{
     if(!running) return;
-    if(promoOv.style.display !== "none") return; // ignore taps while promo open
+    if(promoOv.style.display === "grid") return;
 
-    const a = (angle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
-    const target = Math.PI*1.5; // 12 o'clock
-    let diff = Math.abs(target - a);
-    diff = Math.min(diff, Math.PI*2 - diff);
+    const a = wrap(angle);
+    const res = resolveHit(a);
 
-    if(diff < zoneSize){
-      // HIT
+    if(res.hit){
       combo++;
+      hitsTotal++;
 
-      const precision = (zoneSize - diff) / zoneSize; // 0..1
-      const bonus = Math.max(10, Math.floor(10 + precision * 80));
+      const precision = (res.size - res.diff) / res.size; // 0..1
+      const bonus = Math.max(10, Math.floor(10 + precision * 85));
       score += Math.floor(bonus * (1 + combo*0.18));
 
-      // speed grows a bit faster now
-      speed += 0.0042;
+      // speed grows faster + random afterwards
+      randomizeSpeed();
 
-      // randomize zone each successful hit (keeps it spicy)
-      randomizeZone();
+      // slow motion ONLY on ideal tap
+      if(res.ideal){
+        triggerSlowMo();
+        flash.style.opacity="0.28";
+        setTimeout(()=>flash.style.opacity="0",90);
+      } else {
+        flash.style.opacity="0.18";
+        setTimeout(()=>flash.style.opacity="0",80);
+        try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
+      }
 
-      flash.style.opacity = "0.25";
-      setTimeout(()=>flash.style.opacity="0", 90);
-
-      try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
+      // next round: new zones (and every 10th hit = multiple zones)
+      setupNextZones();
 
       if(!promoShown && combo >= PROMO_COMBO){
         showPromo();
       }
     } else {
-      // MISS
       combo = 0;
-      speed = Math.max(0.03, speed - 0.012);
-      randomizeZone();
+      randomizeSpeed();
+      setupNextZones();
       try{ TG?.HapticFeedback?.impactOccurred?.('heavy'); }catch(e){}
     }
   }, {passive:true});
 
+  // draw
   function draw(){
     ctx.clearRect(0,0,W,H);
     const cx=W/2, cy=H/2;
-    const R = ringR();
+    const R=ringR();
 
-    // background vignette
-    const vg = ctx.createRadialGradient(cx, cy, R*0.4, cx, cy, R*2.2);
+    // vignette
+    const vg = ctx.createRadialGradient(cx, cy, R*0.45, cx, cy, R*2.2);
     vg.addColorStop(0, "rgba(255,255,255,.03)");
     vg.addColorStop(1, "rgba(0,0,0,1)");
     ctx.fillStyle = vg;
@@ -280,24 +348,24 @@
     ctx.arc(cx, cy, R, 0, Math.PI*2);
     ctx.stroke();
 
-    // perfect zone (dynamic)
+    // zones (single or multi)
     ctx.strokeStyle = "rgba(255,255,255,.88)";
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, (Math.PI*1.5 - zoneSize), (Math.PI*1.5 + zoneSize));
-    ctx.stroke();
+    for(const z of zones){
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, z.center - z.size, z.center + z.size);
+      ctx.stroke();
+    }
 
-    // logo in center (clipped)
+    // logo in center
     if(logoReady){
       ctx.save();
       ctx.beginPath();
-      ctx.arc(cx, cy, R * 0.55, 0, Math.PI*2);
+      ctx.arc(cx, cy, R*0.55, 0, Math.PI*2);
       ctx.clip();
-
-      const pulse = 0.96 + Math.sin(Date.now() / 420) * 0.03;
-      const size = R * 1.05 * pulse;
-
+      const pulse = 0.96 + Math.sin(Date.now()/420)*0.03;
+      const s = R * 1.05 * pulse;
       ctx.globalAlpha = 0.90;
-      ctx.drawImage(logo, cx - size/2, cy - size/2, size, size);
+      ctx.drawImage(logo, cx - s/2, cy - s/2, s, s);
       ctx.restore();
     }
 
@@ -313,14 +381,34 @@
     comboEl.textContent = "×" + String(combo);
   }
 
-  function loop(){
+  // loop with slow-motion
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now-last)/1000);
+    last = now;
+
     if(running){
-      angle += speed;
+      if(slowT > 0){
+        slowT -= dt;
+        // smooth fade of slow
+        slow = Math.max(0, slowT / 0.38);
+      } else {
+        slow = 0;
+      }
+
+      // timeScale: 1 -> normal, 0.35 -> strong slow
+      const timeScale = 1 - slow*0.65;
+
+      angle += speed * timeScale;
     }
+
     draw();
     requestAnimationFrame(loop);
   }
-  loop();
+  requestAnimationFrame(loop);
+
+  // init screen
+  setupNextZones();
 })();
 </script>
 </body>
