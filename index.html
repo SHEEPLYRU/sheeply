@@ -499,5 +499,46 @@
     g.beginPath();
     g.arc(0,0, player.r, 0, Math.PI*2);
     g.fillStyle = "rgba(255,255,255,.92)";
-    g.shadowBlur =
+    g.shadowBlur = 20*dpr;
+    g.shadowColor = "rgba(255,255,255,.18)";
+    g.fill();
+    g.restore();
 
+    // FOG: dark overlay with “hole” around player (and a tiny outer glow)
+    const pulse = 0.75 + 0.25*Math.sin(performance.now()/240);
+    const r1 = lightBase * (0.92 + 0.08*pulse);
+    const r2 = r1 * (hard ? 1.55 : 1.72);
+
+    g.save();
+    g.fillStyle = "rgba(0,0,0,.92)";
+    g.fillRect(0,0,W,H);
+
+    // clear hole
+    g.globalCompositeOperation = "destination-out";
+    const grd = g.createRadialGradient(player.x,player.y, r1, player.x,player.y, r2);
+    grd.addColorStop(0, "rgba(0,0,0,1)");
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(player.x,player.y, r2, 0, Math.PI*2);
+    g.fill();
+
+    // add faint edge glow back
+    g.globalCompositeOperation = "source-over";
+    g.globalAlpha = 0.18;
+    g.strokeStyle = "rgba(255,255,255,.35)";
+    g.lineWidth = 2*dpr;
+    g.beginPath();
+    g.arc(player.x,player.y, r1*1.02, 0, Math.PI*2);
+    g.stroke();
+
+    g.restore();
+  }
+
+  // init
+  buildMaze();
+  el.ov.style.display="grid";
+})();
+</script>
+</body>
+</html>
