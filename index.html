@@ -6,44 +6,41 @@
 <title>SHEEPLY PERFECT TIMING</title>
 
 <style>
-html,body{
-  margin:0;height:100%;background:#070707;color:#fff;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto
-}
-.app{
-  position:relative;
-  width:100%;height:100%;
-  overflow:hidden;
-}
-canvas{position:absolute;inset:0}
-.hud{
-  position:absolute;top:16px;left:0;right:0;
-  display:flex;justify-content:center;gap:18px;
-  z-index:10;font-weight:700;letter-spacing:.5px
-}
-.hud span{opacity:.8}
-.overlay{
-  position:absolute;inset:0;
-  display:grid;place-items:center;
-  background:rgba(0,0,0,.65);
-  backdrop-filter:blur(10px);
-  z-index:20
-}
-.btn{
-  padding:14px 28px;
-  border-radius:22px;
-  border:1px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.08);
-  color:#fff;
-  font-weight:900;
-  letter-spacing:1px;
-}
-.flash{
-  position:absolute;inset:0;
-  background:#fff;
-  opacity:0;
-  pointer-events:none;
-}
+  html,body{
+    margin:0;height:100%;background:#070707;color:#fff;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    overflow:hidden;
+  }
+  .app{position:relative;width:100%;height:100%;overflow:hidden}
+  canvas{position:absolute;inset:0}
+  .hud{
+    position:absolute;top:16px;left:0;right:0;z-index:10;
+    display:flex;justify-content:center;gap:18px;
+    font-weight:900;letter-spacing:.6px; user-select:none;
+  }
+  .hud span{opacity:.82}
+  .overlay{
+    position:absolute;inset:0;z-index:20;
+    display:grid;place-items:center;
+    background:rgba(0,0,0,.65);
+    backdrop-filter:blur(10px);
+  }
+  .btn{
+    padding:14px 28px;border-radius:22px;
+    border:1px solid rgba(255,255,255,.20);
+    background:rgba(255,255,255,.08);
+    color:#fff;font-weight:950;letter-spacing:1px;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+    cursor:pointer;
+  }
+  .btn:active{transform:translateY(1px) scale(.99)}
+  .flash{
+    position:absolute;inset:0;
+    background:#fff;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 80ms linear;
+  }
 </style>
 </head>
 
@@ -64,101 +61,154 @@ canvas{position:absolute;inset:0}
 </div>
 
 <script>
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
-const flash = document.getElementById("flash");
+(() => {
+  // Telegram WebApp (optional)
+  const TG = window.Telegram?.WebApp;
+  try { TG?.ready(); TG?.expand(); } catch(e) {}
 
-let W,H,dpr;
-function resize(){
-  dpr=Math.min(2,devicePixelRatio||1);
-  W=innerWidth*dpr;
-  H=innerHeight*dpr;
-  canvas.width=W;canvas.height=H;
-  canvas.style.width=innerWidth+"px";
-  canvas.style.height=innerHeight+"px";
-}
-addEventListener("resize",resize);resize();
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const flash = document.getElementById("flash");
 
-let running=false;
-let angle=0;
-let speed=0.035;
-let score=0;
-let combo=0;
+  // --- Logo (place the PNG next to this HTML or change the path) ---
+  const logo = new Image();
+  logo.src = "SHEEPLY_02-2-negate-Photoroom.png";
+  let logoReady = false;
+  logo.onload = () => (logoReady = true);
 
-const ringR= Math.min(W,H)*0.25;
-const zoneSize=0.35; // radians
+  let W=0, H=0, dpr=1;
+  function resize(){
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.floor(window.innerWidth * dpr);
+    H = Math.floor(window.innerHeight * dpr);
+    canvas.width = W; canvas.height = H;
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+  }
+  window.addEventListener("resize", resize, {passive:true});
+  resize();
 
-const scoreEl=document.getElementById("score");
-const comboEl=document.getElementById("combo");
+  let running=false;
+  let angle=0;
+  let speed=0.035;
 
-function start(){
-  running=true;
-  angle=0;
-  speed=0.035;
-  score=0;
-  combo=0;
-  document.getElementById("ov").style.display="none";
-}
+  let score=0;
+  let combo=0;
 
-document.getElementById("play").onclick=start;
+  const scoreEl=document.getElementById("score");
+  const comboEl=document.getElementById("combo");
+  const ov=document.getElementById("ov");
 
-canvas.addEventListener("pointerdown",()=>{
-  if(!running) return;
+  function ringR(){ return Math.min(W,H) * 0.25; }
+  const zoneSize = 0.35; // radians
 
-  const diff = Math.abs(Math.PI*1.5 - (angle%(Math.PI*2)));
-  if(diff < zoneSize){
-    // PERFECT
-    combo++;
-    const bonus = Math.max(10, Math.floor((zoneSize-diff)*120));
-    score += bonus * combo;
-    speed += 0.003;
-    flash.style.opacity=0.25;
-    setTimeout(()=>flash.style.opacity=0,80);
-  }else{
-    // FAIL
+  function start(){
+    running=true;
+    angle=0;
+    speed=0.035;
+    score=0;
     combo=0;
-    speed=Math.max(0.03,speed-0.01);
+    ov.style.display="none";
+    try{ TG?.HapticFeedback?.impactOccurred?.('light'); }catch(e){}
   }
-});
+  document.getElementById("play").addEventListener("click", start);
 
-function draw(){
-  ctx.clearRect(0,0,W,H);
+  // Tap = check timing
+  canvas.addEventListener("pointerdown", ()=>{
+    if(!running) return;
 
-  const cx=W/2, cy=H/2;
+    const a = (angle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+    const target = Math.PI*1.5; // 12 o'clock
+    let diff = Math.abs(target - a);
+    diff = Math.min(diff, Math.PI*2 - diff);
 
-  // ring
-  ctx.lineWidth=6*dpr;
-  ctx.strokeStyle="rgba(255,255,255,.25)";
-  ctx.beginPath();
-  ctx.arc(cx,cy,ringR,0,Math.PI*2);
-  ctx.stroke();
+    if(diff < zoneSize){
+      // PERFECT
+      combo++;
+      const precision = (zoneSize - diff) / zoneSize; // 0..1
+      const bonus = Math.max(10, Math.floor(10 + precision * 70));
+      score += Math.floor(bonus * (1 + combo*0.18));
+      speed += 0.003;
 
-  // perfect zone
-  ctx.strokeStyle="rgba(255,255,255,.8)";
-  ctx.beginPath();
-  ctx.arc(cx,cy,ringR,Math.PI*1.5-zoneSize,Math.PI*1.5+zoneSize);
-  ctx.stroke();
+      flash.style.opacity = "0.25";
+      setTimeout(()=>flash.style.opacity="0", 80);
 
-  // dot
-  const x=cx+Math.cos(angle)*ringR;
-  const y=cy+Math.sin(angle)*ringR;
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.arc(x,y,6*dpr,0,Math.PI*2);
-  ctx.fill();
+      try{ TG?.HapticFeedback?.notificationOccurred?.('success'); }catch(e){}
+    }else{
+      // FAIL
+      combo = 0;
+      speed = Math.max(0.03, speed - 0.01);
+      try{ TG?.HapticFeedback?.impactOccurred?.('heavy'); }catch(e){}
+    }
+  }, {passive:true});
 
-  scoreEl.textContent=score;
-  comboEl.textContent="×"+combo;
-}
+  // Draw
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const cx=W/2, cy=H/2;
+    const R = ringR();
 
-function loop(){
-  if(running){
-    angle+=speed;
-    draw();
+    // soft background vignette
+    const vg = ctx.createRadialGradient(cx, cy, R*0.4, cx, cy, R*2.2);
+    vg.addColorStop(0, "rgba(255,255,255,.03)");
+    vg.addColorStop(1, "rgba(0,0,0,1)");
+    ctx.fillStyle = vg;
+    ctx.fillRect(0,0,W,H);
+
+    // ring
+    ctx.lineWidth = 6*dpr;
+    ctx.strokeStyle = "rgba(255,255,255,.25)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.stroke();
+
+    // perfect zone
+    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, (Math.PI*1.5 - zoneSize), (Math.PI*1.5 + zoneSize));
+    ctx.stroke();
+
+    // --- logo in center (clipped to circle) ---
+    if(logoReady){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.55, 0, Math.PI*2);
+      ctx.clip();
+
+      const pulse = 0.96 + Math.sin(Date.now() / 420) * 0.03; // subtle breathing
+      const size = R * 1.05 * pulse;
+
+      ctx.globalAlpha = 0.90;
+      ctx.drawImage(logo, cx - size/2, cy - size/2, size, size);
+      ctx.restore();
+    }
+
+    // dot
+    const x=cx + Math.cos(angle)*R;
+    const y=cy + Math.sin(angle)*R;
+
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(x,y,6*dpr,0,Math.PI*2);
+    ctx.fill();
+
+    scoreEl.textContent = String(score);
+    comboEl.textContent = "×" + String(combo);
   }
-  requestAnimationFrame(loop);
-}
-loop();
+
+  // Loop
+  function loop(){
+    if(running){
+      angle += speed;
+      draw();
+    } else {
+      // draw static preview
+      draw();
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
 </script>
 </body>
 </html>
